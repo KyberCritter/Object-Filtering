@@ -1,6 +1,6 @@
 # Object Filtering
 
-A Python module that functions for determining whether arbitrary Python objects meet a set of defined criteria. Filters use JSON to represent a set of criteria that objects must meet. Filters can be arbitrarily nested and can contain conditional logic.
+A Python module for determining whether arbitrary Python objects meet a set of defined criteria. Filters use JSON to represent a set of criteria that objects must meet. Filters can be arbitrarily nested and can contain conditional logic.
 
 See `/docs/filter_specifications.md` for details on filter implementation.
 
