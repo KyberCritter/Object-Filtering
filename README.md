@@ -6,7 +6,7 @@ See `/docs/filter_specifications.md` for details on filter implementation.
 
 ## Installation Options
 
-1. Download the latest version of `object_filtering` from PyPi by running the command `pip install object_filtering`.
+1. `pip install object_filtering`.
 2. Download the latest version of `object_filtering` from the Releases tab on GitHub and install the wheel (`.whl`).
 
 ## Making Modifications
@@ -20,6 +20,6 @@ See `/docs/filter_specifications.md` for details on filter implementation.
 
 ## License
 
-(c) 2024 Scott Ratchford.
+(c) 2025 Scott Ratchford.
 
 `object_filtering` is licensed under the MIT License. See `LICENSE.txt` for details.
