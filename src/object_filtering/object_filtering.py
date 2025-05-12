@@ -1,4 +1,4 @@
-# (c) 2024 Scott Ratchford
+# (c) 2025 Scott Ratchford
 # This file is licensed under the MIT License. See LICENSE.txt for details.
 
 import functools
@@ -57,6 +57,12 @@ def filter_criterion(func):
         return func(*args, **kwargs)
     wrapper._is_whitelisted = True
     return wrapper
+
+class FilterError(ValueError):
+    """Base class for all ObjectFilter errors.
+    """
+    def __init__(self, *args):
+        super().__init__(*args)
 
 """
 Helper and Sanitization Functions
@@ -156,13 +162,14 @@ def is_logical_expression_valid(expression: bool | dict, obj: Any = None) -> boo
 
 def is_rule_valid(rule: dict, obj: Any = None) -> bool:
     """Determines whether a rule conforms to the format from the documentation. All methods used as criteria must be decorated with @filter_criterion.
+    Raises an error if the rule is not valid.
 
     Args:
         rule (dict): The rule to check the validity of.
         obj (Any): The object that will be filtered. All criteria in the rules must be present and whitelisted for its type. Defaults to None.
 
     Returns:
-        bool: Whether the rule is valid.
+        bool: Whether the rule is valid
 
     - Required keys and their values' data types:
         - criterion (str): The variable or method to compare against.
@@ -171,39 +178,40 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         - parameters (list): Passed into the method if the criterion is a method.
     """
     if get_logical_expression_type(rule) != "rule":
-        return False
+        raise FilterError("rule is not a rule.")
     # value types
     if not isinstance(rule["criterion"], str):
-        return False
+        raise FilterError("rule criterion is not a string.")
     if not isinstance(rule["operator"], str):
-        return False
+        raise FilterError("rule operator is not a string.")
     # no type check for comparison_value, since it varies
     if not isinstance(rule["parameters"], list):
-        return False
+        raise FilterError("rule parameter is not a list.")
     if not isinstance(rule["multi_value_behavior"], str):
-        return False
+        raise FilterError("rule multi_value_behavior is not a string.")
     
     if obj is not None:
         # value checks
         if rule["operator"].upper() not in VALID_OPERATORS:
-            return False
+            raise FilterError("rule operator is not a valid operator.")
         try:    # check if method exists
             method = getattr(obj, rule["criterion"])
         except:
-            return False
+            raise FilterError(f"method {rule["criterion"]} does not exist in obj.")
         # check if method is decorated with @filter_criterion
         if not isinstance(obj, ObjectWrapper):
             if callable(method) and not hasattr(method, "_is_whitelisted"):
-                return False
+                raise FilterError(f"method {rule["criterion"]} is not whitelisted in obj. No _is_whitelisted method.")
             if hasattr(method, "_is_whitelisted") and not method._is_whitelisted:
-                return False
+                raise FilterError(f"method {rule["criterion"]} is not whitelisted in obj.")
             if rule["multi_value_behavior"] not in VALID_MULTI_VALUE_BEHAVIORS:
-                return False
-    
+                raise FilterError(f"rule multi_value_behavior is not a valid multi_value_behavior.")
+
     return True
 
 def is_conditional_expression_valid(expression: dict, obj: Any = None) -> bool:
     """Determines whether a rule conforms to the format from the documentation.
+    Raises an error if the conditional expression is not valid.
 
     Args:
         expression (dict): The conditional expression to check the validity of.
@@ -218,7 +226,7 @@ def is_conditional_expression_valid(expression: dict, obj: Any = None) -> bool:
         - else (bool | dict): The logical expression to evaluate if the "if" branch evaluates to False.
     """
     if get_logical_expression_type(expression) != "conditional_expression":
-        return False
+        raise FilterError("expression is not a conditional expression.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression.values()])
 
 def is_group_expression_valid(expression: dict, obj: Any = None) -> bool:
@@ -236,7 +244,7 @@ def is_group_expression_valid(expression: dict, obj: Any = None) -> bool:
         - logical_expressions list([bool | dict]): The logical expressions to evaluate.
     """
     if not expression["logical_operator"] in VALID_LOGICAL_OPERATORS:   # must be "and" or "or"
-        return False
+        raise FilterError("expression logical_operator is not a valid logical operator.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression["logical_expressions"]])
 
 def is_filter_valid(filter: dict, obj: Any = None) -> bool:
@@ -268,24 +276,24 @@ def is_filter_valid(filter: dict, obj: Any = None) -> bool:
         return False
     # validate type of each key's value
     if not isinstance(filter["name"], str):
-        return False
+        raise FilterError("filter name is not a string.")
     if not isinstance(filter["description"], str):
-        return False
+        raise FilterError("filter description is not a string.")
     if not isinstance(filter["priority"], int):
-        return False
+        raise FilterError("filter priority is not an int.")
     if not isinstance(filter["object_types"], list):
-        return False
+        raise FilterError("filter object_types is not a list.")
     if not isinstance(filter["logical_expression"], (bool, dict)):
-        return False
+        raise FilterError("filter logical_expression is not a bool or dict.")
     # validate values of keys
     if filter["priority"] < 0:
-        return False
+        raise FilterError("filter priority is less than 0.")
     
     if not is_logical_expression_valid(filter["logical_expression"], obj):
         return False
     # validate obj type
     if obj is not None and not type_name_matches(obj, filter["object_types"]):
-        return False
+        raise FilterError("obj type name is not in filter object_types.")
     
     return True
 
