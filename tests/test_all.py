@@ -1,4 +1,4 @@
-# (c) 2024 Scott Ratchford
+# (c) 2025 Scott Ratchford
 # This file is licensed under the MIT License. See LICENSE.txt for details.
 
 import unittest
@@ -506,7 +506,8 @@ class TestLogicalExpressionValidity(unittest.TestCase):
         assert object_filtering.is_rule_valid(RULE_X, SHAPE_BIG)
         assert object_filtering.is_rule_valid(RULE_Y, SHAPE_BIG)
         assert object_filtering.is_rule_valid(RULE_VOLUME, SHAPE_BIG)
-        assert not object_filtering.is_rule_valid(RULE_SECRET, SHAPE_BIG)  # not decorated with @object_filtering.filter_criterion
+        with pytest.raises(object_filtering.FilterError):
+            object_filtering.is_rule_valid(RULE_SECRET, SHAPE_BIG)  # not decorated with @object_filtering.filter_criterion
 
     def test_conditional(self):
         assert object_filtering.is_conditional_expression_valid(CONDITIONAL_1, SHAPE_BIG)
@@ -520,7 +521,8 @@ class TestLogicalExpressionValidity(unittest.TestCase):
         logical_expressions = [RULE_X, RULE_Y, RULE_AREA, RULE_VOLUME, CONDITIONAL_1, CONDITIONAL_2, GROUP_1, GROUP_2]
         for exp in logical_expressions:
             assert object_filtering.is_logical_expression_valid(exp, SHAPE_BIG)
-        assert not object_filtering.is_logical_expression_valid(RULE_SECRET, SHAPE_BIG)
+        with pytest.raises(object_filtering.FilterError):
+            object_filtering.is_logical_expression_valid(RULE_SECRET, SHAPE_BIG)
 
 class TestLogicalExpressionResult(unittest.TestCase):
     def test_rule(self):
