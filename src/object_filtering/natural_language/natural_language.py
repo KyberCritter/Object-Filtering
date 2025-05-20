@@ -91,4 +91,4 @@ def explain_filter(obj_filter: ObjectFilter) -> str:
 
     criteria = explain_expression(expr)
 
-    return f"{header}\n{applies}\nCriteria: {criteria}."
+    return f"{header}\n{applies}\nTo pass the filter, the following criteria must be met: {criteria}."
