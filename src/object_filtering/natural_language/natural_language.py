@@ -54,7 +54,7 @@ def explain_expression(expr: LogicalExpression) -> str:
     if isinstance(expr, (GroupExpression, dict)) and "logical_operator" in expr:
         conj = expr["logical_operator"]
         parts = [explain_expression(sub) for sub in expr["logical_expressions"]]
-        return f" {' '+conj+' '}".join(parts)
+        return f" {conj+' '}".join(parts)
     
     # ConditionalExpression objects or dicts
     if isinstance(expr, (ConditionalExpression, dict)) and set(expr.keys()).issuperset({"if", "then", "else"}):
