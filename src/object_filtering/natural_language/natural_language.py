@@ -54,7 +54,10 @@ def explain_expression(expr: LogicalExpression) -> str:
     if isinstance(expr, (GroupExpression, dict)) and "logical_operator" in expr:
         conj = expr["logical_operator"]
         parts = [explain_expression(sub) for sub in expr["logical_expressions"]]
-        return f" {conj+' '}".join(parts)
+        if len(parts) > 1:
+            return f"{f", {conj} ".join(map(str, parts[:-1]))}, and {parts[-1]}"
+        else:
+            return f"{parts[-1]}"
     
     # ConditionalExpression objects or dicts
     if isinstance(expr, (ConditionalExpression, dict)) and set(expr.keys()).issuperset({"if", "then", "else"}):
@@ -79,8 +82,13 @@ def explain_filter(obj_filter: ObjectFilter) -> str:
     types = obj_filter.get("object_types", [])
     expr = obj_filter.get("logical_expression", True)
     
-    header = f"Filter '{name}': {desc}".strip()
-    applies = f"This filter applies to object types: {', '.join(types)}."
+    header = f"Filter \"{name}\": {desc}".strip()
+
+    if len(types) > 1:
+        applies = f"This filter applies to {f"s, ".join(map(str, types[:-1]))}, and {types[-1]}s."
+    else:
+        applies = f"This filter applies to {types[0]}s."
+
     criteria = explain_expression(expr)
 
     return f"{header}\n{applies}\nCriteria: {criteria}."
