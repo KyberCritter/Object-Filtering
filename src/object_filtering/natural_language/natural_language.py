@@ -55,7 +55,7 @@ def explain_expression(expr: LogicalExpression) -> str:
         conj = expr["logical_operator"]
         parts = [explain_expression(sub) for sub in expr["logical_expressions"]]
         if len(parts) > 1:
-            return f"{f", {conj} ".join(map(str, parts[:-1]))}, and {parts[-1]}"
+            return f"{f", {conj} ".join(map(str, parts[:-1]))}, {conj} {parts[-1]}"
         else:
             return f"{parts[-1]}"
     
