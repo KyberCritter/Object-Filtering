@@ -42,10 +42,11 @@ def explain_expression(expr: LogicalExpression) -> str:
         val = expr["comparison_value"]
         params = expr.get("parameters", [])
         param_str = ""
-        if params:
-            param_str = " after calling {} with parameters {}".format(
-                criterion, ", ".join(map(str, params))
-            )
+        if params and len(params) > 0:
+            if len(params) == 1:
+                param_str = f" with parameter {params[0]}"
+            else:
+                param_str = f" with parameters {", ".join(map(str, params[:-1]))} and {params[-1]}"
             return f"the result of calling {criterion}{param_str} {OPERATOR_MAP[op]} {val}"
         return f"{criterion} {OPERATOR_MAP[op]} {val}"
     
