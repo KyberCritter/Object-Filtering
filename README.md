@@ -1,5 +1,8 @@
 # Object Filtering
 
+![Build Status](https://github.com/KyberCritter/Object-Filtering/actions/workflows/python-package.yml/badge.svg?branch=main)
+![Python Versions](https://img.shields.io/badge/python-3.10--3.13-blue)
+
 A Python module for determining whether arbitrary Python objects meet a set of defined criteria. Filters use JSON to represent a set of criteria that objects must meet. Filters can be arbitrarily nested and can contain conditional logic.
 
 See `/docs/filter_specifications.md` for details on filter implementation.
