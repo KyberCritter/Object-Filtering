@@ -19,76 +19,92 @@ OPERATOR_MAP = {
     ">": "is greater than"
 }
 
-def explain_expression(expr: LogicalExpression) -> str:
-    """Recursively convert a logical expression into a natural-language phrase.
+def explain_expression(expr: LogicalExpression, depth: int = 0) -> str:
+    """Recursively convert a logical expression into an indented, multi-line English-language description.
 
     Args:
         expr (LogicalExpression): The LogicalExpression to explain.
+        depth (int, optional): Depth of the expression within a larger expression. Defaults to 0.
 
     Raises:
-        TypeError: If the type of expr is unsupported.
+        TypeError: If the type of expr is not LogicalExpression.
 
     Returns:
-        str: An English-language description of expr.
+        str: A description of expr.
     """
+    indent = '    ' * depth
+
     # Boolean literals
     if isinstance(expr, bool):
-        return "always true" if expr else "always false"
-    
+        text = "This condition is always true." if expr else "This condition is always false."
+        return f"{indent}{text}"
+
     # Rule objects or dicts
     if isinstance(expr, (Rule, dict)) and set(expr.keys()).issuperset({"criterion", "operator", "comparison_value"}):
         criterion = expr["criterion"]
         op = expr["operator"]
         val = expr["comparison_value"]
         params = expr.get("parameters", [])
-        param_str = ""
-        if params and len(params) > 0:
+        if params:
             if len(params) == 1:
                 param_str = f" with parameter {params[0]}"
             else:
-                param_str = f" with parameters {", ".join(map(str, params[:-1]))} and {params[-1]}"
-            return f"the result of calling {criterion}{param_str} {OPERATOR_MAP[op]} {val}"
-        return f"{criterion} {OPERATOR_MAP[op]} {val}"
-    
+                joined = ", ".join(map(str, params[:-1]))
+                param_str = f" with parameters {joined} and {params[-1]}"
+            text = f"The result of calling {criterion}{param_str} {OPERATOR_MAP[op]} {val}."
+        else:
+            text = f"{criterion} {OPERATOR_MAP[op]} {val}."
+        return f"{indent}{text}"
+
     # GroupExpression objects or dicts
     if isinstance(expr, (GroupExpression, dict)) and "logical_operator" in expr:
         conj = expr["logical_operator"]
-        parts = [explain_expression(sub) for sub in expr["logical_expressions"]]
-        if len(parts) > 1:
-            return f"{f", {conj} ".join(map(str, parts[:-1]))}, {conj} {parts[-1]}"
+        parts = expr.get("logical_expressions", [])
+        if conj == "and":
+            header = "All of the following conditions must be met:"
         else:
-            return f"{parts[-1]}"
-    
+            header = "At least one of the following conditions must be met:"
+        lines = [f"{indent}{header}"]
+        for sub in parts:
+            sub_text = explain_expression(sub, depth + 1).strip()
+            lines.append(f"{indent}    - {sub_text}")
+        return "\n".join(lines)
+
     # ConditionalExpression objects or dicts
     if isinstance(expr, (ConditionalExpression, dict)) and set(expr.keys()).issuperset({"if", "then", "else"}):
-        cond = explain_expression(expr["if"])
-        then = explain_expression(expr["then"])
-        el = explain_expression(expr["else"])
-        return f"If {cond}, then {then}; otherwise, {el}"
-    
+        cond_lines = explain_expression(expr["if"], depth + 1).strip()
+        then_lines = explain_expression(expr["then"], depth + 1).strip()
+        else_lines = explain_expression(expr["else"], depth + 1).strip()
+        lines = [f"{indent}If the following condition holds:",
+                 f"{indent}    - {cond_lines}",
+                 f"{indent}Then:",
+                 f"{indent}    - {then_lines}",
+                 f"{indent}Otherwise:",
+                 f"{indent}    - {else_lines}"]
+        return "\n".join(lines)
+
     raise TypeError(f"Unsupported expression type: {expr}")
 
 def explain_filter(obj_filter: ObjectFilter) -> str:
-    """Generate a full English explanation of an ObjectFilter.
+    """Generate an English explanation of the entire ObjectFilter.
 
     Args:
-        obj_filter (ObjectFilter): The ObjectFilter to explain.
+        obj_filter (ObjectFilter): The ObjectFilter to describe.
 
     Returns:
-        str: An English-language explanation of obj_filter.
+        str: An English-language description of the ObjectFilter.
     """
     name = obj_filter.get("name", "(unnamed)")
     desc = obj_filter.get("description", "")
     types = obj_filter.get("object_types", [])
     expr = obj_filter.get("logical_expression", True)
-    
-    header = f"Filter \"{name}\": {desc}".strip()
 
+    header = f"Filter \"{name}\": {desc}".strip()
     if len(types) > 1:
-        applies = f"This filter applies to {f"s, ".join(map(str, types[:-1]))}, and {types[-1]}s."
+        type_list = ", ".join(types[:-1]) + f", and {types[-1]}"
+        applies = f"This filter applies to objects of types: {type_list}."
     else:
-        applies = f"This filter applies to {types[0]}s."
+        applies = f"This filter applies to objects of type: {types[0]}."
 
     criteria = explain_expression(expr)
-
-    return f"{header}\n{applies}\nTo pass the filter, the following criteria must be met: {criteria}."
+    return f"{header}\n{applies}\n{criteria}"
