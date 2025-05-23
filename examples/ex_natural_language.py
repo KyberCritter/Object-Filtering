@@ -5,65 +5,53 @@
 from object_filtering.object_filtering import ObjectFilter, Rule, GroupExpression
 from object_filtering.natural_language import explain_filter
 
-# Construct a sample ObjectFilter
-sample_filter = ObjectFilter(
-    name="AdultHeightFilter",
-    description="Selects adults of acceptable height",
-    priority=1,
-    object_types=["Person"],
+
+large_filter = ObjectFilter(
+    name="Shape Area",
+    description="Determines whether Shape is large.",
+    priority=0,
+    object_types=["Shape",],
     logical_expression=GroupExpression(
         logical_operator="and",
         logical_expressions=[
-            # Age at least 18
             Rule(
-                criterion = "age",
-                operator = ">=",
-                comparison_value = 18,
-                parameters = [],
-                multi_value_behavior = "none"
+                criterion="area",
+                operator=">=",
+                comparison_value=4,
+                parameters=[],
+                multi_value_behavior="none"
             ),
-            # Height less than 200 cm
             Rule(
-                criterion = "height_cm",
-                operator = "<",
-                comparison_value = 200,
-                parameters = [],
-                multi_value_behavior = "none"
+                criterion="volume",
+                operator=">=",
+                comparison_value=8,
+                parameters=[2,],
+                multi_value_behavior="none"
             ),
             GroupExpression(
                 logical_operator="or",
                 logical_expressions=[
-                    # Height greater than 150 cm
                     Rule(
-                        criterion = "height_cm",
-                        operator = ">",
-                        comparison_value = 150,
-                        parameters = [],
-                        multi_value_behavior = "none"
+                        criterion="area_if_stretched",
+                        operator=">=",
+                        comparison_value=9,
+                        parameters=[2, 3],
+                        multi_value_behavior="none"
                     ),
-                    # Height equal to 100 cm
                     Rule(
-                        criterion = "height_cm",
-                        operator = "==",
-                        comparison_value = 100,
-                        parameters = [],
-                        multi_value_behavior = "none"
-                    ),
-                    # Height equal to 102 cm
-                    Rule(
-                        criterion = "height_cm",
-                        operator = "==",
-                        comparison_value = 102,
-                        parameters = [],
-                        multi_value_behavior = "none"
+                        criterion="has_long_side",
+                        operator=">=",
+                        comparison_value=1,
+                        parameters=[1,],
+                        multi_value_behavior="none"
                     ),
                 ]
-            )
+            ),
         ]
     )
 )
 
 if __name__ == "__main__":
     # Run the explainer and print the result
-    description = explain_filter(sample_filter)
+    description = explain_filter(large_filter)
     print(description)
