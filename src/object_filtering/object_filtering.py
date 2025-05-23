@@ -197,13 +197,13 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         try:    # check if method exists
             method = getattr(obj, rule["criterion"])
         except:
-            raise FilterError(f"method {rule["criterion"]} does not exist in obj.")
+            raise FilterError(f"method {rule['criterion']} does not exist in obj.")
         # check if method is decorated with @filter_criterion
         if not isinstance(obj, ObjectWrapper):
             if callable(method) and not hasattr(method, "_is_whitelisted"):
-                raise FilterError(f"method {rule["criterion"]} is not whitelisted in obj. No _is_whitelisted method.")
+                raise FilterError(f"method {rule['criterion']} is not whitelisted in obj. No _is_whitelisted method.")
             if hasattr(method, "_is_whitelisted") and not method._is_whitelisted:
-                raise FilterError(f"method {rule["criterion"]} is not whitelisted in obj.")
+                raise FilterError(f"method {rule['criterion']} is not whitelisted in obj.")
             if rule["multi_value_behavior"] not in VALID_MULTI_VALUE_BEHAVIORS:
                 raise FilterError(f"rule multi_value_behavior is not a valid multi_value_behavior.")
 
@@ -440,7 +440,7 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
             elif isinstance(obj_value[0], (int, float, Decimal)):
                 obj_value = sum(obj_value)
             else:
-                raise TypeError(f"obj.{rule["criterion"]} on ObjectWrapper with multi_value_behavior \"add\" did not return a list of numbers or strings.")
+                raise TypeError(f"obj.{rule['criterion']} on ObjectWrapper with multi_value_behavior \"add\" did not return a list of numbers or strings.")
         elif multi_value_behavior == "each_meets_criterion":
             return all([criterion_comparison(get_value(x, rule), operator, comparison_value) for x in obj._obj])
         elif multi_value_behavior == "each_equal_in_object":    # ignores comparison_value in favor of checking internal equality of elements
