@@ -302,7 +302,8 @@ def sanitize_string(value: str) -> str:
     return ''.join(char for char in value if 32 <= ord(char) <= 126)
 
 def sanitize_filter(filter: dict) -> dict:
-    """Sanitize a dictionary, including nested dictionaries, to ensure all string values contain only ASCII characters 32 to 126.
+    """Sanitize a dictionary, including nested dictionaries, to ensure
+    all string values contain only ASCII characters 32 to 126.
 
     Args:
         filter (dict): The filter to sanitize.
@@ -329,10 +330,13 @@ def sanitize_filter(filter: dict) -> dict:
 def get_value(obj: Any, rule: dict) -> Any:
     """Returns the value of an attribute of `obj`, based on `rule["criterion"]`.
 
-    If the attribute is a method, it must be decoracted with `@filter_criterion` (unless `obj` is a `ObjectWrapper`). If `rule["parameters"]` is not empty, each element of `rule["parameters"]` is passed into the method.
+    If the attribute is a method, it must be decorated with `@filter_criterion`
+    (unless `obj` is a `ObjectWrapper`). If `rule["parameters"]` is not empty,
+    each element of `rule["parameters"]` is passed into the method.
 
     Args:
-        obj (Any): The object that the rule will be executed with. All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the rule will be executed with.
+            All criteria in the rules must be present and whitelisted for its type.
         rule (dict): The rule to execute.
 
     Raises:
@@ -363,11 +367,14 @@ def execute_logical_expression_on_object(obj: Any, expression: bool | dict) -> b
     """Executes a logical expression on an object.
 
     Args:
-        obj (Any): The object that the logical expression will be executed with. All criteria in the rules must be present and whitelisted for its type.
-        expression (bool | dict): The logical expression (boolean, rule, conditional expression, or group expression) to execute.
+        obj (Any): The object that the logical expression will be executed with.
+            All criteria in the rules must be present and whitelisted for its type.
+        expression (bool | dict): The logical expression (boolean, rule, conditional
+            expression, or group expression) to execute.
 
     Raises:
-        ValueError: If expression is not a logical expression of any kind (boolean, rule, group expression, conditional expression, or filter)
+        ValueError: If expression is not a logical expression of any kind (boolean,
+            rule, group expression, conditional expression, or filter)
 
     Returns:
         bool: The evaluation of the logical expression.
@@ -414,7 +421,8 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
     """Returns the result of the comparison operation defined by the rule.
     
     Args:
-        obj (Any): The object that the rule will be executed with. All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the rule will be executed with.
+            All criteria in the rules must be present and whitelisted for its type.
         rule (dict): The rule to execute.
 
     Raises:
@@ -443,8 +451,10 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
                 raise TypeError(f"obj.{rule['criterion']} on ObjectWrapper with multi_value_behavior \"add\" did not return a list of numbers or strings.")
         elif multi_value_behavior == "each_meets_criterion":
             return all([criterion_comparison(get_value(x, rule), operator, comparison_value) for x in obj._obj])
-        elif multi_value_behavior == "each_equal_in_object":    # ignores comparison_value in favor of checking internal equality of elements
-            return all([criterion_comparison(obj_value[0], "==", val) for val in obj_value[1:]])    # avoids float comparison imprecision
+        # ignores comparison_value in favor of checking internal equality of elements
+        elif multi_value_behavior == "each_equal_in_object":
+            # avoids float comparison imprecision
+            return all([criterion_comparison(obj_value[0], "==", val) for val in obj_value[1:]])
         else:
             raise ValueError("multi_value_behavior has an invalid value.")
 
@@ -454,7 +464,8 @@ def execute_conditional_expression_on_object(obj: Any, expression: dict) -> bool
     """Executes a conditional expression on an object.
 
     Args:
-        obj (Any): The object that the conditional expression will be executed with. All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the conditional expression will be executed with.
+            All criteria in the rules must be present and whitelisted for its type.
         expression (dict): The conditional expression to execute.
 
     Raises:
@@ -474,7 +485,8 @@ def execute_group_expression_on_object(obj: Any, expression: dict) -> bool:
     """Executes a group expression on an object.
 
     Args:
-        obj (Any): The object that the group expression will be executed with. All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the group expression will be executed with.
+            All criteria in the rules must be present and whitelisted for its type.
         expression (dict): The group expression to execute.
 
     Raises:
@@ -494,12 +506,14 @@ def execute_group_expression_on_object(obj: Any, expression: dict) -> bool:
         raise ValueError("Group expression's logical operator must be \"and\" or \"or\".")
 
 def execute_filter_on_object(obj, filter: dict, sanitize: bool = True) -> bool:
-    """Evaluates a filter on an object. Returns True if all logical expressions succeed and False if any of them fail.
+    """Evaluates a filter on an object.
+    Returns True if all logical expressions succeed or False if any of them fail.
 
     Args:
         obj: Any object.
         filter (dict): A filter to execute.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to remove character from the filter outside
+            the ASCII range 32 to 126. Defaults to True.
 
     Raises:
         ValueError: If the filter is not valid, according to the documentation.
@@ -515,12 +529,14 @@ def execute_filter_on_object(obj, filter: dict, sanitize: bool = True) -> bool:
     return execute_logical_expression_on_object(obj, filter["logical_expression"])
 
 def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: bool = True) -> np.ndarray[bool]:
-    """Evaluates a filter on each element in an array. Returns an array with the result of evaluating the filter on each element.
+    """Evaluates a filter on each element in an array.
+    Returns an array with the result of evaluating the filter on each element.
 
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
         filter (dict): A filter to execute.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to remove character from the filter outside
+            the ASCII range 32 to 126. Defaults to True.
 
     Raises:
         ValueError: If the filter is not valid, according to the documentation.
