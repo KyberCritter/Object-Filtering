@@ -17,7 +17,10 @@ VALID_LOGICAL_OPERATORS = set(["and", "or"])
 VALID_MULTI_VALUE_BEHAVIORS = set(["none", "add", "each_meets_criterion", "each_equal_in_object"])
 
 class ObjectFilter(dict):
-    def __init__(self, name: str = "", description: str = "", priority: int = 0, object_types: list = ["object"], logical_expression: bool | dict = True) -> None:
+    def __init__(
+            self, name: str = "", description: str = "", priority: int = 0,
+            object_types: list = ["object"], logical_expression: bool | dict = True
+        ) -> None:
         super().__init__()
         self["name"] = name
         self["description"] = description
@@ -26,7 +29,11 @@ class ObjectFilter(dict):
         self["logical_expression"] = logical_expression
 
 class Rule(dict):
-    def __init__(self, criterion: str = "__class__", operator: str = "==", comparison_value: int | float | str | bool = "", parameters: list = [], multi_value_behavior: str = "none") -> None:
+    def __init__(
+            self, criterion: str = "__class__", operator: str = "==",
+            comparison_value: int | float | str | bool = "", parameters: list = [],
+            multi_value_behavior: str = "none"
+        ) -> None:
         super().__init__()
         self["criterion"] = criterion
         self["operator"] = operator
@@ -35,13 +42,18 @@ class Rule(dict):
         self["multi_value_behavior"] = multi_value_behavior
 
 class GroupExpression(dict):
-    def __init__(self, logical_operator: str = "and", logical_expressions: list = []) -> None:
+    def __init__(
+            self, logical_operator: str = "and", logical_expressions: list = []
+        ) -> None:
         super().__init__()
         self["logical_operator"] = logical_operator
         self["logical_expressions"] = logical_expressions
 
 class ConditionalExpression(dict):
-    def __init__(self, if_branch: bool | dict = True, then_branch: bool | dict = True, else_branch: bool | dict = True) -> None:
+    def __init__(
+            self, if_branch: bool | dict = True, then_branch: bool | dict = True,
+            else_branch: bool | dict = True
+        ) -> None:
         super().__init__()
         self["if"] = if_branch
         self["then"] = then_branch
@@ -69,7 +81,8 @@ Helper and Sanitization Functions
 """
 
 def type_name_matches(obj: Any, target_type_names: Iterable[str]) -> bool:
-    """Evaluates whether obj is an instance of a class with a name matching target_type_name. If obj is an ObjectWrapper, the types of the elements of obj._obj are checked instead.
+    """Evaluates whether obj is an instance of a class with a name matching target_type_name.
+    If obj is an ObjectWrapper, the types of the elements of obj._obj are checked instead.
 
     Args:
         obj (Any): The object to check the type of.
