@@ -77,16 +77,18 @@ large_filter = object_filtering.ObjectFilter(
 
 class TestNaturalLanguage(unittest.TestCase):
     def test_natural_language_explanation(self):
-        square = Shape(3, 4)
+        # square = Shape(3, 4)
         expl = object_filtering.natural_language.explain_filter(large_filter)
         expected_expl = "Filter \"Shape Area\": Determines whether Shape is large.\n"
-        expected_expl += "This filter applies to Shapes.\nTo pass the filter, the following criteria must be met: "
-        expected_expl += "area is greater than or equal to 4, and the result of calling volume with parameter 2 "
-        expected_expl += "is greater than or equal to 8, and the result of calling area_if_stretched with "
-        expected_expl += "parameters 2 and 3 is greater than or equal to 9, or the result of calling has_long_side "
-        expected_expl += "with parameter 1 is greater than or equal to 1."
+        expected_expl += "This filter applies to objects of type: Shape.\n"
+        expected_expl += "All of the following conditions must be met:\n"
+        expected_expl += "    - area is greater than or equal to 4.\n"
+        expected_expl += "    - The result of calling volume with parameter 2 is greater than or equal to 8.\n"
+        expected_expl += "    - At least one of the following conditions must be met:\n"
+        expected_expl += "        - The result of calling area_if_stretched with parameters 2 and 3 is greater than or equal to 9.\n"
+        expected_expl += "        - The result of calling has_long_side with parameter 1 is greater than or equal to 1."
+
         assert expl == expected_expl
 
 if __name__ == '__main__':
     pytest.main()
-
