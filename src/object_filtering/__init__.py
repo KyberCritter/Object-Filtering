@@ -36,3 +36,8 @@ from .object_filtering import (
     execute_filter_list_on_object_get_first_success,
     ObjectWrapper,
 )
+
+from .natural_language import (
+    explain_expression,
+    explain_filter,
+)
