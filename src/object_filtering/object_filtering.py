@@ -530,7 +530,8 @@ def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: 
     """
     if sanitize:
         filter = sanitize_filter(filter)
-    if not is_filter_valid(filter, obj_array[0]):   # use first element because np.ndarray element types are homogeneous
+    # use first element because np.ndarray element types are homogeneous
+    if not is_filter_valid(filter, obj_array[0]):
         raise ValueError("Filter is not valid.")
     
     return np.array([execute_filter_on_object(obj, filter, sanitize=False) for obj in obj_array], dtype=bool)
@@ -539,14 +540,17 @@ def sort_filter_list(filter_list: list[dict]) -> list[dict]:
     return sorted(filter_list, key=lambda x: (x["priority"], x["name"]))
 
 def execute_filter_list_on_object(obj: Any, filter_list: list[dict], sanitize: bool = True) -> np.ndarray[bool]:
-    """Evaluates a list of filters on an object. Returns an array with the evaluation result of each filter.
+    """Evaluates a list of filters on an object.
+    Returns an array with the evaluation result of each filter.
 
-    This function sorts `filter_list` before executing its elements. Filters are primarily ordered by `filter["priority"]` and secondarily ordered by `filter["name"]`.
+    This function sorts `filter_list` before executing its elements.
+    Filters are primarily ordered by `filter["priority"]` and secondarily ordered by `filter["name"]`.
 
     Args:
         obj (Any): Any object.
         filter_list (list[dict]): A list of filters to execute on `obj`.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to remove character from the filter outside
+            the ASCII range 32 to 126. Defaults to True.
 
     Returns:
         np.ndarray[bool]: For each filter, whether it evaluated to True on `obj`.
@@ -557,12 +561,14 @@ def execute_filter_list_on_object(obj: Any, filter_list: list[dict], sanitize: b
     return np.array([execute_filter_on_object(obj, f, sanitize=False) for f in filter_list], dtype=bool)
 
 def execute_filter_list_on_array(obj_array: np.ndarray[Any], filter_list: list[dict], sanitize: bool = True) -> np.ndarray[bool]:
-    """Evaluates a list of filters on every object in an array. Returns an array with the evaluation result of the filter list on each element.
+    """Evaluates a list of filters on every object in an array.
+    Returns an array with the evaluation result of the filter list on each element.
 
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
         filter_list (list[dict]): A list of filters to execute on the elements of `obj_array`.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to remove character from the filter outside
+            the ASCII range 32 to 126. Defaults to True.
 
     Returns:
         np.ndarray[bool]: For each element of `obj_array`, whether the filter list evaluated to True.
@@ -573,14 +579,17 @@ def execute_filter_list_on_array(obj_array: np.ndarray[Any], filter_list: list[d
     return np.array([all(execute_filter_list_on_object(obj, filter_list, sanitize=False)) for obj in obj_array], dtype=bool)
 
 def execute_filter_list_on_object_get_first_success(obj: Any, filter_list: list[dict], sanitize: bool = True) -> str:
-    """Evaluates a list of filters on an object. Returns the name of the first successful filter, if any exists.
+    """Evaluates a list of filters on an object.
+    Returns the name of the first successful filter, if any exists.
 
-    This function sorts `filter_list` before executing its elements. Filters are primarily ordered by `filter["priority"]` and secondarily ordered by `filter["name"]`.
+    This function sorts `filter_list` before executing its elements.
+    Filters are primarily ordered by `filter["priority"]` and secondarily ordered by `filter["name"]`.
 
     Args:
         obj (Any): Any object.
         filter_list (list[dict]): A list of filters to execute on `obj`.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to remove character from
+            the filter outside the ASCII range 32 to 126. Defaults to True.
 
     Raises:
         ValueError: If `obj` did not pass any filter in `filter_list`
@@ -596,7 +605,9 @@ def execute_filter_list_on_object_get_first_success(obj: Any, filter_list: list[
     raise ValueError("obj did not pass any filters in filter_list")
 
 class ObjectWrapper:
-    """A class that accepts objects of mixed types. Evaluates methods and accesses instance variables and properties for each. Ignores presence or lack of @filter_criterion.
+    """A class that accepts objects of mixed types.
+    Evaluates methods and accesses instance variables and properties for each.
+    Ignores presence or lack of @filter_criterion.
     """
 
     def __init__(self, obj: Any | Iterable[Any]):
