@@ -12,14 +12,14 @@ See `/docs/filter_specifications.md` for details on filter implementation.
 1. `pip install object_filtering`.
 2. Download the latest version of `object_filtering` from the Releases tab on GitHub and install the wheel (`.whl`).
 
-## Making Modifications
+## Building From Source
 
 1. Clone this repository.
-2. Make modifications to the source code.
-3. (Optional) Change the module version in `pyproject.toml`.
-4. Run `pytest` from the root of the repository to run unit tests. Only continue if all tests pass.
-5. Build the module by running `py -m build` from the root of the repository.
-6. Install the newly built wheel file.
+2. Install the Python modules `build`, `wheel`, `hatchling`, and `hatch-requirements-txt`.
+3. (Optional) Make modifications to the source code.
+4. (Optional) Change the module version in `pyproject.toml`.
+5. Run `pytest` from the root of the repository to run unit tests. Only continue if all tests pass.
+6. Build the module by running `py -m build` from the root of the repository.
 
 ## License
 
