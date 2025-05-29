@@ -4,7 +4,7 @@
 #!/usr/bin/env python3
 import json
 import sys
-from src.object_filtering.object_filtering import (
+from ..object_filtering import (
     ObjectFilter, Rule, GroupExpression, ConditionalExpression,
     LogicalExpression,
 )
