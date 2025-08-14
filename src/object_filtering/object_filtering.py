@@ -218,7 +218,7 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
             raise FilterError("rule operator is not a valid operator.")
         try:    # check if method exists
             method = getattr(obj, rule["criterion"])
-        except:
+        except AttributeError:
             raise FilterError(f"method {rule['criterion']} does not exist in obj.")
         # check if method is decorated with @filter_criterion
         if not isinstance(obj, ObjectWrapper):
@@ -685,11 +685,7 @@ class ObjectWrapper:
                 raise AttributeError(f"Not all objects have the attribute '{name}'")
         else:
             if hasattr(self._obj, name):
-                attr = getattr(self._obj, name)
                 # If the attribute is a method, return it directly
-                if callable(attr):
-                    return attr
-                else:
-                    return attr
+                return getattr(self._obj, name)
             else:
                 raise AttributeError(f"'{type(self._obj).__name__}' object has no attribute '{name}'")
