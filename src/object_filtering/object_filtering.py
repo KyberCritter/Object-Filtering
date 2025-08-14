@@ -216,10 +216,9 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         # value checks
         if rule["operator"].upper() not in VALID_OPERATORS:
             raise FilterError("rule operator is not a valid operator.")
-        try:    # check if method exists
-            method = getattr(obj, rule["criterion"])
-        except AttributeError:
+        if not hasattr(obj, rule["criterion"]):
             raise FilterError(f"method {rule['criterion']} does not exist in obj.")
+        method = getattr(obj, rule["criterion"])
         # check if method is decorated with @filter_criterion
         if not isinstance(obj, ObjectWrapper):
             if callable(method) and not hasattr(method, "_is_whitelisted"):
