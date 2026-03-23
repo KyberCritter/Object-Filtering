@@ -1,4 +1,4 @@
-# (c) 2025 Scott Ratchford
+# (c) 2026 Scott Ratchford
 # This file is licensed under the MIT License. See LICENSE.txt for details.
 
 import functools
@@ -15,6 +15,8 @@ ABS_TOL = Decimal(0.0001)
 VALID_OPERATORS = set(["<", "<=", "==", "!=", ">=", ">"])
 VALID_LOGICAL_OPERATORS = set(["and", "or"])
 VALID_MULTI_VALUE_BEHAVIORS = set(["none", "add", "each_meets_criterion", "each_equal_in_object"])
+SPECIAL_VARIABLES = set(["$CLASS$"])
+CLASS_VARIABLE_OPERATORS = set(["==", "!="])
 
 class ObjectFilter(dict):
     def __init__(
@@ -216,6 +218,11 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         # value checks
         if rule["operator"].upper() not in VALID_OPERATORS:
             raise FilterError("rule operator is not a valid operator.")
+        # special variable handling
+        if rule["criterion"] in SPECIAL_VARIABLES:
+            if rule["criterion"] == "$CLASS$" and rule["operator"] not in CLASS_VARIABLE_OPERATORS:
+                raise FilterError("$CLASS$ only supports == and != operators.")
+            return True
         try:    # check if method exists
             method = getattr(obj, rule["criterion"])
         except:
@@ -375,8 +382,16 @@ def get_value(obj: Any, rule: dict) -> Any:
     Returns:
         Any: The value of the attribute of `obj`.
     """
+    # special variable handling
+    if rule["criterion"] == "$CLASS$":
+        if isinstance(obj, ObjectWrapper):
+            if isinstance(obj._obj, Iterable):
+                return [type(element).__name__ for element in obj._obj]
+            return type(obj._obj).__name__
+        return type(obj).__name__
+
     method = getattr(obj, rule["criterion"])
-    
+
     parameters = rule["parameters"]
     if callable(method):
         if not isinstance(obj, ObjectWrapper) and not hasattr(method, "_is_whitelisted"):
