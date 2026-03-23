@@ -484,6 +484,33 @@ CLASS_FILTER = {
     }
 }
 
+# Only check area >= 4 if the object is a Shape; otherwise pass automatically
+CLASS_CONDITIONAL = {
+    "if": {
+        "criterion": "$CLASS$",
+        "operator": "==",
+        "comparison_value": "Shape",
+        "parameters": [],
+        "multi_value_behavior": "none"
+    },
+    "then": {
+        "criterion": "area",
+        "operator": ">=",
+        "comparison_value": 4,
+        "parameters": [],
+        "multi_value_behavior": "none"
+    },
+    "else": True
+}
+
+CLASS_CONDITIONAL_FILTER = {
+    "name": "Class Conditional Filter",
+    "description": "Only checks area for Shapes. Points always pass.",
+    "priority": 0,
+    "object_types": ["Shape", "Point"],
+    "logical_expression": CLASS_CONDITIONAL
+}
+
 HIGH_X_FILTER = object_filtering.ObjectFilter(
     name="High X",
     description="Checks for a high x value.",
@@ -709,6 +736,21 @@ class TestClassVariable(unittest.TestCase):
 
     def test_class_variable_filter(self):
         assert object_filtering.execute_filter_on_object(SHAPE_BIG, CLASS_FILTER)
+
+    def test_class_variable_conditional(self):
+        # Shape with area >= 4 passes the "then" branch
+        assert object_filtering.execute_conditional_expression_on_object(SHAPE_BIG, CLASS_CONDITIONAL)
+        # Shape with area < 4 (1*1=1) fails the "then" branch
+        assert not object_filtering.execute_conditional_expression_on_object(SHAPE_SMALL, CLASS_CONDITIONAL)
+        # Point takes the "else" branch (True), so always passes
+        point = Point(0, 0)
+        assert object_filtering.execute_conditional_expression_on_object(point, CLASS_CONDITIONAL)
+
+    def test_class_variable_conditional_filter(self):
+        assert object_filtering.execute_filter_on_object(SHAPE_BIG, CLASS_CONDITIONAL_FILTER)
+        assert not object_filtering.execute_filter_on_object(SHAPE_SMALL, CLASS_CONDITIONAL_FILTER)
+        point = Point(0, 0)
+        assert object_filtering.execute_filter_on_object(point, CLASS_CONDITIONAL_FILTER)
 
     def test_class_variable_with_object_wrapper(self):
         wrapper = object_filtering.ObjectWrapper(SHAPE_1)
