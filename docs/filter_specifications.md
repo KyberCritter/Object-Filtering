@@ -178,7 +178,7 @@ To evaluate to **True**, either the *if* and *then* conditions must evaluate to 
 
 Special variables are reserved criterion names that do not correspond to an instance variable, property, or method on the object. Instead, they return metadata about the object itself. Special variables are identified by the `$` prefix and suffix (e.g., `$CLASS$`).
 
-#### $CLASS$
+#### \$CLASS\$
 
 The `$CLASS$` variable returns the class name of the object as a string. It can be used as the criterion in any rule. When used, only the `==` and `!=` operators are supported. Using any other operator with `$CLASS$` will raise a FilterError.
 
