@@ -5,18 +5,27 @@ import functools
 from decimal import Decimal
 from inspect import getmro
 from sys import getsizeof
-from typing import Any, Callable, Iterable, Literal
+from typing import Any, Callable, Iterable, Literal, get_args
 from math import isclose
 
 import numpy as np
 
 
 ABS_TOL = Decimal(0.0001)
-VALID_OPERATORS = frozenset({"<", "<=", "==", "!=", ">=", ">"})
-VALID_LOGICAL_OPERATORS = frozenset({"and", "or"})
-VALID_MULTI_VALUE_BEHAVIORS = frozenset({"none", "add", "each_meets_criterion", "each_equal_in_object"})
+
+Operator = Literal["<", "<=", "==", "!=", ">=", ">"]
+VALID_OPERATORS = frozenset(get_args(Operator))
+
+LogicalOperator = Literal["and", "or"]
+VALID_LOGICAL_OPERATORS = frozenset(get_args(LogicalOperator))
+
+MultiValueBehavior = Literal["none", "add", "each_meets_criterion", "each_equal_in_object"]
+VALID_MULTI_VALUE_BEHAVIORS = frozenset(get_args(MultiValueBehavior))
+
+ClassVariableOperator = Literal["==", "!="]
+CLASS_VARIABLE_OPERATORS = frozenset(get_args(ClassVariableOperator))
+
 SPECIAL_VARIABLES = frozenset({"$CLASS$"})
-CLASS_VARIABLE_OPERATORS = frozenset({"==", "!="})
 
 class _LogicalExpressionBase(dict):
     """Base class for all LogicalExpression dict subclasses. Provides dot
@@ -85,10 +94,10 @@ class Rule(_LogicalExpressionBase):
     def __init__(
             self,
             criterion: str = "__class__",
-            operator: Literal["==", "!=", ">", ">=", "<", "<="] = "==",
+            operator: Operator = "==",
             comparison_value: int | float | str | bool = "",
             parameters: list = [],
-            multi_value_behavior: str = "none"
+            multi_value_behavior: MultiValueBehavior = "none"
         ) -> None:
         super().__init__()
         self["criterion"] = criterion
@@ -102,7 +111,7 @@ class GroupExpression(_LogicalExpressionBase):
 
     def __init__(
             self,
-            logical_operator: Literal["and", "or"] = "and",
+            logical_operator: LogicalOperator = "and",
             logical_expressions: list = []
         ) -> None:
         super().__init__()
@@ -517,7 +526,7 @@ def execute_logical_expression_on_object(obj: Any, expression: LogicalExpression
 
 def criterion_comparison(
         obj_value: int | float | str | bool,
-        operator: Literal["<", "<=", "==", "!=", ">=", ">"],
+        operator: Operator,
         comparison_value: int | float | str | bool
     ) -> bool:
     if operator == "<":
@@ -547,8 +556,8 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
     """Returns the result of the comparison operation defined by the rule.
     
     Args:
-        obj (Any): The object that the rule will be executed with.
-            All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the rule will be executed with. All criteria
+            in the rules must be present and whitelisted for its type.
         rule (dict): The rule to execute.
 
     Raises:
