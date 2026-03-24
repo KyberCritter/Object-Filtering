@@ -1,4 +1,4 @@
-# (c) 2025 Scott Ratchford
+# (c) 2026 Scott Ratchford
 # This file is licensed under the MIT License. See LICENSE.txt for details.
 
 from .object_filtering import (
@@ -6,6 +6,8 @@ from .object_filtering import (
     VALID_OPERATORS,
     VALID_LOGICAL_OPERATORS,
     VALID_MULTI_VALUE_BEHAVIORS,
+    SPECIAL_VARIABLES,
+    CLASS_VARIABLE_OPERATORS,
     ObjectFilter,
     Rule,
     GroupExpression,

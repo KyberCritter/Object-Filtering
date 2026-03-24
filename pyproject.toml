@@ -7,7 +7,7 @@ packages = ["object_filtering"]
 
 [project]
 name = "object_filtering"
-version = "0.1.14"
+version = "0.2.0"
 authors = [
     { name="Scott Ratchford", email="object_filtering@scottratchford.com" },
 ]
@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Natural Language :: English",
@@ -32,6 +33,11 @@ dynamic = ["dependencies"]
 [project.urls]
 Homepage = "https://github.com/KyberCritter/Object-Filtering"
 Issues = "https://github.com/KyberCritter/Object-Filtering/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
 
 [tool.pytest.ini_options]
 pythonpath = [

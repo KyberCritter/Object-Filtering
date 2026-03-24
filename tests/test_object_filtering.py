@@ -446,6 +446,71 @@ MIXED_FILTER = {
     }
 }
 
+RULE_CLASS_EQ = {
+    "criterion": "$CLASS$",
+    "operator": "==",
+    "comparison_value": "Shape",
+    "parameters": [],
+    "multi_value_behavior": "none"
+}
+
+RULE_CLASS_NEQ = {
+    "criterion": "$CLASS$",
+    "operator": "!=",
+    "comparison_value": "Point",
+    "parameters": [],
+    "multi_value_behavior": "none"
+}
+
+RULE_CLASS_INVALID_OP = {
+    "criterion": "$CLASS$",
+    "operator": ">",
+    "comparison_value": "Shape",
+    "parameters": [],
+    "multi_value_behavior": "none"
+}
+
+CLASS_FILTER = {
+    "name": "Class Filter",
+    "description": "Filters by class name.",
+    "priority": 0,
+    "object_types": ["Shape"],
+    "logical_expression": {
+        "criterion": "$CLASS$",
+        "operator": "==",
+        "comparison_value": "Shape",
+        "parameters": [],
+        "multi_value_behavior": "none"
+    }
+}
+
+# Only check area >= 4 if the object is a Shape; otherwise pass automatically
+CLASS_CONDITIONAL = {
+    "if": {
+        "criterion": "$CLASS$",
+        "operator": "==",
+        "comparison_value": "Shape",
+        "parameters": [],
+        "multi_value_behavior": "none"
+    },
+    "then": {
+        "criterion": "area",
+        "operator": ">=",
+        "comparison_value": 4,
+        "parameters": [],
+        "multi_value_behavior": "none"
+    },
+    "else": True
+}
+
+CLASS_CONDITIONAL_FILTER = {
+    "name": "Class Conditional Filter",
+    "description": "Only checks area for Shapes. Points always pass.",
+    "priority": 0,
+    "object_types": ["Shape", "Point"],
+    "logical_expression": CLASS_CONDITIONAL
+}
+
 HIGH_X_FILTER = object_filtering.ObjectFilter(
     name="High X",
     description="Checks for a high x value.",
@@ -654,6 +719,45 @@ class TestFilterList(unittest.TestCase):
         filter_list = [LOW_Y_FILTER, HIGH_Y_FILTER, HIGH_X_FILTER]
         filter_list = object_filtering.sort_filter_list(filter_list)
         assert filter_list == [HIGH_X_FILTER, HIGH_Y_FILTER, LOW_Y_FILTER]
+
+class TestClassVariable(unittest.TestCase):
+    def test_class_variable_rule_validity(self):
+        assert object_filtering.is_rule_valid(RULE_CLASS_EQ, SHAPE_BIG)
+        assert object_filtering.is_rule_valid(RULE_CLASS_NEQ, SHAPE_BIG)
+        with pytest.raises(object_filtering.FilterError):
+            object_filtering.is_rule_valid(RULE_CLASS_INVALID_OP, SHAPE_BIG)
+
+    def test_class_variable_rule_execution(self):
+        assert object_filtering.execute_rule_on_object(SHAPE_BIG, RULE_CLASS_EQ)
+        assert object_filtering.execute_rule_on_object(SHAPE_BIG, RULE_CLASS_NEQ)
+        point = Point(1, 1)
+        assert not object_filtering.execute_rule_on_object(point, RULE_CLASS_EQ)
+        assert not object_filtering.execute_rule_on_object(point, RULE_CLASS_NEQ)  # Point != "Point" is False
+
+    def test_class_variable_filter(self):
+        assert object_filtering.execute_filter_on_object(SHAPE_BIG, CLASS_FILTER)
+
+    def test_class_variable_conditional(self):
+        # Shape with area >= 4 passes the "then" branch
+        assert object_filtering.execute_conditional_expression_on_object(SHAPE_BIG, CLASS_CONDITIONAL)
+        # Shape with area < 4 (1*1=1) fails the "then" branch
+        assert not object_filtering.execute_conditional_expression_on_object(SHAPE_SMALL, CLASS_CONDITIONAL)
+        # Point takes the "else" branch (True), so always passes
+        point = Point(0, 0)
+        assert object_filtering.execute_conditional_expression_on_object(point, CLASS_CONDITIONAL)
+
+    def test_class_variable_conditional_filter(self):
+        assert object_filtering.execute_filter_on_object(SHAPE_BIG, CLASS_CONDITIONAL_FILTER)
+        assert not object_filtering.execute_filter_on_object(SHAPE_SMALL, CLASS_CONDITIONAL_FILTER)
+        point = Point(0, 0)
+        assert object_filtering.execute_filter_on_object(point, CLASS_CONDITIONAL_FILTER)
+
+    def test_class_variable_with_object_wrapper(self):
+        wrapper = object_filtering.ObjectWrapper(SHAPE_1)
+        assert object_filtering.get_value(wrapper, RULE_CLASS_EQ) == "Shape"
+
+        multi_wrapper = object_filtering.ObjectWrapper([SHAPE_1, SHAPE_2])
+        assert object_filtering.get_value(multi_wrapper, RULE_CLASS_EQ) == ["Shape", "Shape"]
 
 if __name__ == '__main__':
     pytest.main()
