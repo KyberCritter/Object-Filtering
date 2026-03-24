@@ -898,6 +898,18 @@ class TestClassVariable(unittest.TestCase):
         with pytest.raises(object_filtering.FilterError):
             object_filtering.is_rule_valid(RULE_CLASS_INVALID_OP, SHAPE_BIG)
 
+    def test_class_variable_invalid_operators(self):
+        for op in ("<", "<=", ">=", ">"):
+            rule = {
+                "criterion": "$CLASS$",
+                "operator": op,
+                "comparison_value": "Shape",
+                "parameters": [],
+                "multi_value_behavior": "none"
+            }
+            with pytest.raises(object_filtering.FilterError):
+                object_filtering.is_rule_valid(rule, SHAPE_BIG)
+
     def test_class_variable_rule_execution(self):
         assert object_filtering.execute_rule_on_object(SHAPE_BIG, RULE_CLASS_EQ)
         assert object_filtering.execute_rule_on_object(SHAPE_BIG, RULE_CLASS_NEQ)
