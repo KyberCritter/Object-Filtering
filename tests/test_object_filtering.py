@@ -1053,6 +1053,169 @@ class TestDictToLogicalExpression(unittest.TestCase):
         with pytest.raises(ValueError):
             object_filtering.dict_to_logical_expression({})
 
+class TestImplicitDictConversion(unittest.TestCase):
+    """Tests that plain dicts are implicitly converted to LogicalExpression
+    types when passed into functions, without mutating the original dict."""
+
+    RULE_DICT = {
+        "criterion": "area",
+        "operator": "==",
+        "comparison_value": 2,
+        "parameters": [],
+        "multi_value_behavior": "none"
+    }
+    GROUP_DICT = {
+        "logical_operator": "and",
+        "logical_expressions": [
+            {
+                "criterion": "area",
+                "operator": "==",
+                "comparison_value": 2,
+                "parameters": [],
+                "multi_value_behavior": "none"
+            }
+        ]
+    }
+    COND_DICT = {
+        "if": {
+            "criterion": "area",
+            "operator": "==",
+            "comparison_value": 2,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        },
+        "then": True,
+        "else": False
+    }
+    FILTER_DICT = {
+        "name": "test",
+        "description": "test",
+        "priority": 0,
+        "object_types": ["Shape"],
+        "logical_expression": {
+            "criterion": "area",
+            "operator": "==",
+            "comparison_value": 2,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        }
+    }
+
+    def _assert_still_plain_dict(self, d):
+        assert type(d) is dict
+
+    def test_execute_logical_expression_on_object_with_dict(self):
+        d = dict(self.RULE_DICT)
+        assert object_filtering.execute_logical_expression_on_object(SHAPE_1, d)
+        self._assert_still_plain_dict(d)
+
+    def test_execute_rule_on_object_with_dict(self):
+        d = dict(self.RULE_DICT)
+        assert object_filtering.execute_rule_on_object(SHAPE_1, d)
+        self._assert_still_plain_dict(d)
+
+    def test_execute_conditional_expression_on_object_with_dict(self):
+        d = {
+            "if": dict(self.RULE_DICT),
+            "then": True,
+            "else": False
+        }
+        assert object_filtering.execute_conditional_expression_on_object(SHAPE_1, d)
+        self._assert_still_plain_dict(d)
+
+    def test_execute_group_expression_on_object_with_dict(self):
+        d = {
+            "logical_operator": "and",
+            "logical_expressions": [dict(self.RULE_DICT)]
+        }
+        assert object_filtering.execute_group_expression_on_object(SHAPE_1, d)
+        self._assert_still_plain_dict(d)
+
+    def test_execute_filter_on_object_with_dict(self):
+        d = dict(self.FILTER_DICT)
+        assert object_filtering.execute_filter_on_object(SHAPE_1, d)
+        self._assert_still_plain_dict(d)
+
+    def test_is_logical_expression_valid_with_dict(self):
+        d = dict(self.RULE_DICT)
+        assert object_filtering.is_logical_expression_valid(d, SHAPE_1)
+        self._assert_still_plain_dict(d)
+
+    def test_is_rule_valid_with_dict(self):
+        d = dict(self.RULE_DICT)
+        assert object_filtering.is_rule_valid(d, SHAPE_1)
+        self._assert_still_plain_dict(d)
+
+    def test_is_conditional_expression_valid_with_dict(self):
+        d = {
+            "if": dict(self.RULE_DICT),
+            "then": True,
+            "else": False
+        }
+        assert object_filtering.is_conditional_expression_valid(d, SHAPE_1)
+        self._assert_still_plain_dict(d)
+
+    def test_is_group_expression_valid_with_dict(self):
+        d = {
+            "logical_operator": "and",
+            "logical_expressions": [dict(self.RULE_DICT)]
+        }
+        assert object_filtering.is_group_expression_valid(d, SHAPE_1)
+        self._assert_still_plain_dict(d)
+
+    def test_is_filter_valid_with_dict(self):
+        d = dict(self.FILTER_DICT)
+        assert object_filtering.is_filter_valid(d, SHAPE_1)
+        self._assert_still_plain_dict(d)
+
+    def test_get_value_with_dict(self):
+        d = dict(self.RULE_DICT)
+        assert object_filtering.get_value(SHAPE_1, d) == 2
+        self._assert_still_plain_dict(d)
+
+    def test_sanitize_filter_with_dict(self):
+        d = dict(self.FILTER_DICT)
+        result = object_filtering.sanitize_filter(d)
+        self._assert_still_plain_dict(d)
+        assert isinstance(result, dict)
+
+    def test_sort_filter_list_with_dicts(self):
+        d1 = dict(self.FILTER_DICT)
+        d2 = {
+            **self.FILTER_DICT,
+            "priority": 1,
+            "name": "another"
+        }
+        result = object_filtering.sort_filter_list([d2, d1])
+        self._assert_still_plain_dict(d1)
+        self._assert_still_plain_dict(d2)
+        assert result[0]["name"] == "test"
+
+    def test_execute_filter_on_object_invalid_dict_raises_value_error(self):
+        d = {
+            "foo": "bar",
+            "baz": 123
+        }
+        with pytest.raises(ValueError):
+            object_filtering.execute_filter_on_object(SHAPE_1, d)
+
+    def test_execute_rule_on_object_invalid_dict_raises_value_error(self):
+        d = {
+            "foo": "bar",
+            "baz": 123
+        }
+        with pytest.raises(ValueError):
+            object_filtering.execute_rule_on_object(SHAPE_1, d)
+
+    def test_is_logical_expression_valid_invalid_dict_raises_value_error(self):
+        d = {
+            "foo": "bar",
+            "baz": 123
+        }
+        with pytest.raises(ValueError):
+            object_filtering.is_logical_expression_valid(d)
+
+
 class TestMixedTypeFilters(unittest.TestCase):
     def test_mixed_type_filter(self):
         shape = Shape(2, 2)

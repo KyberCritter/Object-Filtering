@@ -468,6 +468,8 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
     Returns:
         bool: Whether the LogicalExpression is valid.
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     expr_type = get_logical_expression_type(expression)
     if expr_type == bool:
         # True and False are both valid
@@ -504,6 +506,8 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         - comparison_value: The value to compare the value of the criterion with.
         - parameters (list): Passed into the method if the criterion is a method.
     """
+    if isinstance(rule, dict) and not isinstance(rule, _LogicalExpressionBase):
+        rule = dict_to_logical_expression(rule)
     if get_logical_expression_type(rule) != Rule:
         raise FilterError("rule is not a Rule.")
     # value types
@@ -561,6 +565,8 @@ def is_conditional_expression_valid(expression: ConditionalExpression, obj: Any 
         - else (LogicalExpression): The LogicalExpression to evaluate if the
             "if" branch evaluates to False.
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     if get_logical_expression_type(expression) != ConditionalExpression:
         raise FilterError("expression is not a ConditionalExpression.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression.values()])
@@ -583,6 +589,8 @@ def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> b
         - logical_expressions (list[LogicalExpression]): The LogicalExpressions
             to evaluate.
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     if not expression["logical_operator"] in VALID_LOGICAL_OPERATORS:   # must be "and" or "or"
         raise FilterError("expression logical_operator is not a valid logical operator.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression["logical_expressions"]])
@@ -612,6 +620,8 @@ def is_filter_valid(filter: ObjectFilter, obj: Any = None) -> bool:
         - multi_value_behavior (str): A string that determines what happens to
             values returned by an ObjectWrapper.
     """
+    if isinstance(filter, dict) and not isinstance(filter, _LogicalExpressionBase):
+        filter = dict_to_logical_expression(filter)
     # sanity check on dict size
     if getsizeof(filter) > 102400:
         raise ValueError("Size of filter dictionary must be less than or equal to " + \
@@ -661,9 +671,11 @@ def sanitize_filter(filter: ObjectFilter) -> ObjectFilter:
         ObjectFilter: The new ObjectFilter, with all characters outside of the
             ASCII range 32 to 126 removed.
     """
+    if isinstance(filter, dict) and not isinstance(filter, _LogicalExpressionBase):
+        filter = dict_to_logical_expression(filter)
     if not isinstance(filter, dict):
         raise TypeError("filter must be an ObjectFilter.")
-    
+
     sanitized = {}
     for key, value in filter.items():
         if isinstance(value, dict):
@@ -695,6 +707,8 @@ def get_value(obj: Any, rule: dict) -> Any:
     Returns:
         Any: The value of the attribute of `obj`.
     """
+    if isinstance(rule, dict) and not isinstance(rule, _LogicalExpressionBase):
+        rule = dict_to_logical_expression(rule)
     # special variable handling
     if rule["criterion"] == "$CLASS$":
         if isinstance(obj, ObjectWrapper):
@@ -739,6 +753,8 @@ def execute_logical_expression_on_object(obj: Any, expression: LogicalExpression
     Returns:
         bool: The evaluation of the LogicalExpression
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     expression_type = get_logical_expression_type(expression)
     if expression_type == bool:
         return expression
@@ -795,9 +811,11 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
     Returns:
         bool: The result of the comparison.
     """
+    if isinstance(rule, dict) and not isinstance(rule, _LogicalExpressionBase):
+        rule = dict_to_logical_expression(rule)
     if get_logical_expression_type(rule) != Rule:
         raise ValueError("rule is not a Rule.")
-    
+
     obj_value = get_value(obj, rule)
     operator = rule["operator"]
     comparison_value = rule["comparison_value"]
@@ -839,6 +857,8 @@ def execute_conditional_expression_on_object(obj: Any, expression: dict) -> bool
     Returns:
         bool: The evaluation of the conditional expression.
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     if get_logical_expression_type(expression) != ConditionalExpression:
         raise ValueError("expression is not a ConditionalExpression.")
     if execute_logical_expression_on_object(obj, expression["if"]):
@@ -861,6 +881,8 @@ def execute_group_expression_on_object(obj: Any, expression: GroupExpression) ->
     Returns:
         bool: The evaluation of the GroupExpression.
     """
+    if isinstance(expression, dict) and not isinstance(expression, _LogicalExpressionBase):
+        expression = dict_to_logical_expression(expression)
     if get_logical_expression_type(expression) != GroupExpression:
         raise ValueError("expression is not a GroupExpression.")
     if expression["logical_operator"] == "and":
@@ -888,11 +910,13 @@ def execute_filter_on_object(obj, filter: ObjectFilter, sanitize: bool = True) -
         bool: Whether all the LogicalExpressions in the ObjectFilter evaluated
             to True.
     """
+    if isinstance(filter, dict) and not isinstance(filter, _LogicalExpressionBase):
+        filter = dict_to_logical_expression(filter)
     if sanitize:
         filter = sanitize_filter(filter)
     if not is_filter_valid(filter, obj):
         raise ValueError("ObjectFilter is not valid.")
-    
+
     return execute_logical_expression_on_object(obj, filter["logical_expression"])
 
 def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: bool = True) -> np.ndarray[bool]:
@@ -913,6 +937,8 @@ def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: 
         np.ndarray[bool]: For each element of obj_array, whether the
             ObjectFilter evaluated to True.
     """
+    if isinstance(filter, dict) and not isinstance(filter, _LogicalExpressionBase):
+        filter = dict_to_logical_expression(filter)
     if sanitize:
         filter = sanitize_filter(filter)
     # use first element because np.ndarray element types are homogeneous
@@ -922,6 +948,7 @@ def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: 
     return np.array([execute_filter_on_object(obj, filter, sanitize=False) for obj in obj_array], dtype=bool)
 
 def sort_filter_list(filter_list: list[dict]) -> list[dict]:
+    filter_list = [dict_to_logical_expression(f) if isinstance(f, dict) and not isinstance(f, _LogicalExpressionBase) else f for f in filter_list]
     return sorted(filter_list, key=lambda x: (x["priority"], x["name"]))
 
 def execute_filter_list_on_object(
@@ -947,6 +974,7 @@ def execute_filter_list_on_object(
         np.ndarray[bool]: For each ObjectFilter, whether it evaluated to True
             on `obj`.
     """
+    filter_list = [dict_to_logical_expression(f) if isinstance(f, dict) and not isinstance(f, _LogicalExpressionBase) else f for f in filter_list]
     filter_list = sort_filter_list(filter_list)
     if sanitize:
         filter_list = [sanitize_filter(f) for f in filter_list]
@@ -971,6 +999,7 @@ def execute_filter_list_on_array(
         np.ndarray[bool]: For each element of `obj_array`, whether the
             ObjectFilter list evaluated to True.
     """
+    filter_list = [dict_to_logical_expression(f) if isinstance(f, dict) and not isinstance(f, _LogicalExpressionBase) else f for f in filter_list]
     filter_list = sort_filter_list(filter_list)
     if sanitize:
         filter_list = [sanitize_filter(f) for f in filter_list]
@@ -1003,6 +1032,7 @@ def execute_filter_list_on_object_get_first_success(
     Returns:
         str: The name of the first successful ObjectFilter in `filter_list`
     """
+    filter_list = [dict_to_logical_expression(f) if isinstance(f, dict) and not isinstance(f, _LogicalExpressionBase) else f for f in filter_list]
     filter_list = sort_filter_list(filter_list)
     results = execute_filter_list_on_object(obj, filter_list, sanitize=sanitize)
     for index, passed in enumerate(results):
