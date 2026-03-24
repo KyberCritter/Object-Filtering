@@ -1,7 +1,7 @@
 # Object Filtering
 
 ![Build Status](https://github.com/KyberCritter/Object-Filtering/actions/workflows/python-package.yml/badge.svg?branch=main)
-![Python Versions](https://img.shields.io/badge/python-3.10--3.13-blue)
+![Python Versions](https://img.shields.io/badge/python-3.10--3.14-blue)
 
 A Python module for determining whether arbitrary Python objects meet a set of defined criteria. Filters use JSON to represent a set of criteria that objects must meet. Filters can be arbitrarily nested and can contain conditional logic.
 
@@ -23,6 +23,6 @@ See `/docs/filter_specifications.md` for details on filter implementation.
 
 ## License
 
-(c) 2025 Scott Ratchford.
+(c) 2026 Scott Ratchford.
 
 `object_filtering` is licensed under the MIT License. See `LICENSE.txt` for details.
