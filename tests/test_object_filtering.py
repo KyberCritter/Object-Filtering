@@ -1,8 +1,10 @@
-# (c) 2025 Scott Ratchford
+# (c) 2026 Scott Ratchford
 # This file is licensed under the MIT License. See LICENSE.txt for details.
 
 import unittest
+
 from src import object_filtering
+
 import pytest
 
 
@@ -864,6 +866,192 @@ class TestLogicalExpressionClasses(unittest.TestCase):
         with pytest.raises(TypeError):
             object_filtering.logical_expression_from_dict(42)
 
+    def test_isinstance_rule(self):
+        rule = object_filtering.Rule("area", "==", 2, [], "none")
+        assert isinstance(rule, object_filtering.Rule)
+        assert isinstance(rule, object_filtering._LogicalExpressionBase)
+        assert isinstance(rule, dict)
+
+    def test_isinstance_group_expression(self):
+        group = object_filtering.GroupExpression("and", [True])
+        assert isinstance(group, object_filtering.GroupExpression)
+        assert isinstance(group, object_filtering._LogicalExpressionBase)
+        assert isinstance(group, dict)
+
+    def test_isinstance_conditional_expression(self):
+        cond = object_filtering.ConditionalExpression(True, False, True)
+        assert isinstance(cond, object_filtering.ConditionalExpression)
+        assert isinstance(cond, object_filtering._LogicalExpressionBase)
+        assert isinstance(cond, dict)
+
+    def test_isinstance_object_filter(self):
+        f = object_filtering.ObjectFilter("test", "desc", 0, ["obj"], True)
+        assert isinstance(f, object_filtering.ObjectFilter)
+        assert isinstance(f, object_filtering._LogicalExpressionBase)
+        assert isinstance(f, dict)
+
+    def test_isinstance_bool_not_base(self):
+        assert not isinstance(True, object_filtering._LogicalExpressionBase)
+        assert not isinstance(False, object_filtering._LogicalExpressionBase)
+
+    def test_subclass_hierarchy(self):
+        assert issubclass(object_filtering.Rule, object_filtering._LogicalExpressionBase)
+        assert issubclass(object_filtering.GroupExpression, object_filtering._LogicalExpressionBase)
+        assert issubclass(object_filtering.ConditionalExpression, object_filtering._LogicalExpressionBase)
+        assert issubclass(object_filtering.ObjectFilter, object_filtering._LogicalExpressionBase)
+        assert not issubclass(bool, object_filtering._LogicalExpressionBase)
+
+    def test_dict_with_rule_criteria_is_not_rule(self):
+        d = {
+            "criterion": "area",
+            "operator": ">=",
+            "comparison_value": 4,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        }
+        assert not isinstance(d, object_filtering.Rule)
+        assert not isinstance(d, object_filtering._LogicalExpressionBase)
+        assert object_filtering.get_logical_expression_type(d) is object_filtering.Rule
+
+    def test_dict_with_group_criteria_is_not_group(self):
+        d = {
+            "logical_operator": "and",
+            "logical_expressions": [True]
+        }
+        assert not isinstance(d, object_filtering.GroupExpression)
+        assert not isinstance(d, object_filtering._LogicalExpressionBase)
+        assert object_filtering.get_logical_expression_type(d) is object_filtering.GroupExpression
+
+    def test_dict_with_conditional_criteria_is_not_conditional(self):
+        d = {
+            "if": True,
+            "then": True,
+            "else": False
+        }
+        assert not isinstance(d, object_filtering.ConditionalExpression)
+        assert not isinstance(d, object_filtering._LogicalExpressionBase)
+        assert object_filtering.get_logical_expression_type(d) is object_filtering.ConditionalExpression
+
+    def test_dict_with_object_filter_criteria_is_not_object_filter(self):
+        d = {
+            "name": "test",
+            "description": "desc",
+            "priority": 0,
+            "object_types": ["obj"],
+            "logical_expression": True
+        }
+        assert not isinstance(d, object_filtering.ObjectFilter)
+        assert not isinstance(d, object_filtering._LogicalExpressionBase)
+        assert object_filtering.get_logical_expression_type(d) is object_filtering.ObjectFilter
+
+class TestDictToLogicalExpression(unittest.TestCase):
+    def test_dict_to_rule(self):
+        d = {
+            "criterion": "area",
+            "operator": ">=",
+            "comparison_value": 4,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        }
+        result = object_filtering.dict_to_logical_expression(d)
+        assert isinstance(result, object_filtering.Rule)
+        assert result.criterion == "area"
+        assert result.operator == ">="
+        assert result.comparison_value == 4
+
+    def test_dict_to_group_expression(self):
+        d = {
+            "logical_operator": "and",
+            "logical_expressions": [
+                {
+                    "criterion": "x",
+                    "operator": ">=",
+                    "comparison_value": 2,
+                    "parameters": [],
+                    "multi_value_behavior": "none"
+                },
+                True
+            ]
+        }
+        result = object_filtering.dict_to_logical_expression(d)
+        assert isinstance(result, object_filtering.GroupExpression)
+        assert result.logical_operator == "and"
+        assert isinstance(result.logical_expressions[0], object_filtering.Rule)
+        assert result.logical_expressions[1] is True
+
+    def test_dict_to_conditional_expression(self):
+        d = {
+            "if": {
+                "criterion": "x",
+                "operator": ">=",
+                "comparison_value": 1,
+                "parameters": [],
+                "multi_value_behavior": "none"
+            },
+            "then": True,
+            "else": False
+        }
+        result = object_filtering.dict_to_logical_expression(d)
+        assert isinstance(result, object_filtering.ConditionalExpression)
+        assert isinstance(result["if"], object_filtering.Rule)
+        assert result["then"] is True
+        assert result["else"] is False
+
+    def test_dict_to_object_filter(self):
+        d = {
+            "name": "Test",
+            "description": "desc",
+            "priority": 0,
+            "object_types": ["Shape"],
+            "logical_expression": True
+        }
+        result = object_filtering.dict_to_logical_expression(d)
+        assert isinstance(result, object_filtering.ObjectFilter)
+        assert result.name == "Test"
+        assert result.logical_expression is True
+
+    def test_dict_to_object_filter_nested(self):
+        d = {
+            "name": "Nested",
+            "description": "desc",
+            "priority": 1,
+            "object_types": ["Shape"],
+            "logical_expression": {
+                "logical_operator": "or",
+                "logical_expressions": [
+                    {
+                        "criterion": "x",
+                        "operator": "==",
+                        "comparison_value": 1,
+                        "parameters": [],
+                        "multi_value_behavior": "none"
+                    },
+                    {
+                        "if": True,
+                        "then": False,
+                        "else": True
+                    }
+                ]
+            }
+        }
+        result = object_filtering.dict_to_logical_expression(d)
+        assert isinstance(result, object_filtering.ObjectFilter)
+        group = result.logical_expression
+        assert isinstance(group, object_filtering.GroupExpression)
+        assert isinstance(group.logical_expressions[0], object_filtering.Rule)
+        assert isinstance(group.logical_expressions[1], object_filtering.ConditionalExpression)
+
+    def test_invalid_keys_raises_value_error(self):
+        d = {
+            "foo": "bar",
+            "baz": 123
+        }
+        with pytest.raises(ValueError):
+            object_filtering.dict_to_logical_expression(d)
+
+    def test_empty_dict_raises_value_error(self):
+        with pytest.raises(ValueError):
+            object_filtering.dict_to_logical_expression({})
 
 class TestMixedTypeFilters(unittest.TestCase):
     def test_mixed_type_filter(self):
@@ -941,6 +1129,3 @@ class TestClassVariable(unittest.TestCase):
 
         multi_wrapper = object_filtering.ObjectWrapper([SHAPE_1, SHAPE_2])
         assert object_filtering.get_value(multi_wrapper, RULE_CLASS_EQ) == ["Shape", "Shape"]
-
-if __name__ == '__main__':
-    pytest.main()

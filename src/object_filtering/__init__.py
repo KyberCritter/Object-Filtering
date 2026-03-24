@@ -8,6 +8,7 @@ from .object_filtering import (
     VALID_MULTI_VALUE_BEHAVIORS,
     SPECIAL_VARIABLES,
     CLASS_VARIABLE_OPERATORS,
+    _LogicalExpressionBase,
     ObjectFilter,
     Rule,
     GroupExpression,
@@ -42,6 +43,7 @@ from .object_filtering import (
     MultiValueBehavior,
     ClassVariableOperator,
     logical_expression_from_dict,
+    dict_to_logical_expression,
 )
 
 from .natural_language import (

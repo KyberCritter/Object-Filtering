@@ -398,6 +398,29 @@ def type_name_matches(obj: Any, target_type_names: Iterable[str]) -> bool:
 
         return False
 
+def dict_to_logical_expression(d: dict) -> LogicalExpression:
+    """Converts a plain dict into the appropriate LogicalExpression subclass,
+    recursively converting any nested expressions.
+
+    Args:
+        d (dict): A dict whose keys match a LogicalExpression type.
+
+    Raises:
+        ValueError: If the dict's keys do not match any LogicalExpression type.
+
+    Returns:
+        LogicalExpression: The constructed LogicalExpression.
+    """
+    expr_type = get_logical_expression_type(d)
+    if expr_type == Rule:
+        return Rule.from_dict(d)
+    elif expr_type == ConditionalExpression:
+        return ConditionalExpression.from_dict(d)
+    elif expr_type == GroupExpression:
+        return GroupExpression.from_dict(d)
+    elif expr_type == ObjectFilter:
+        return ObjectFilter.from_dict(d)
+
 def get_logical_expression_type(expression: LogicalExpression) -> type:
     """Determines the type of a LogicalExpression based on its contents.
 
