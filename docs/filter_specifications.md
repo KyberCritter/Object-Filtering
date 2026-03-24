@@ -1,6 +1,6 @@
 # Filter Specifications
 
-(c) 2024 Scott Ratchford
+(c) 2026 Scott Ratchford
 
 This file is licensed under the MIT License. See LICENSE.txt for details.
 
@@ -86,14 +86,14 @@ A rule specifies a single condition to check and includes:
 
 Operators define how to compare values:
 
-| Operator | Meaning           |
-|----------|-------------------|
-| <        | Less than         |
-| <=       | Less than or equal|
-| ==       | Equal to          |
-| !=       | Not equal to      |
+| Operator | Meaning               |
+| -------- | --------------------- |
+| <        | Less than             |
+| <=       | Less than or equal    |
+| ==       | Equal to              |
+| !=       | Not equal to          |
 | >=       | Greater than or equal |
-| >        | Greater than      |
+| >        | Greater than          |
 
 ### Group Expressions
 
@@ -171,5 +171,41 @@ To evaluate to **True**, either the *if* and *then* conditions must evaluate to 
             ]
         }
     ]
+}
+```
+
+### Special Variables
+
+Special variables are reserved criterion names that do not correspond to an instance variable, property, or method on the object. Instead, they return metadata about the object itself. Special variables are identified by the `$` prefix and suffix (e.g., `$CLASS$`).
+
+#### $CLASS$
+
+The `$CLASS$` variable returns the class name of the object as a string. It can be used as the criterion in any rule. When used, only the `==` and `!=` operators are supported. Using any other operator with `$CLASS$` will raise a FilterError.
+
+This is particularly useful in conditional expressions where a filter applies to multiple object types but certain checks should only run against objects of a specific class. For example, the following filter only checks `area` for `Shape` objects, while `Point` objects automatically pass:
+
+```JSON
+{
+    "name": "Class Conditional Filter",
+    "description": "Only checks area for Shapes. Points always pass.",
+    "priority": 0,
+    "object_types": ["Shape", "Point"],
+    "logical_expression": {
+        "if": {
+            "criterion": "$CLASS$",
+            "operator": "==",
+            "comparison_value": "Shape",
+            "parameters": [],
+            "multi_value_behavior": "none"
+        },
+        "then": {
+            "criterion": "area",
+            "operator": ">=",
+            "comparison_value": 4,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        },
+        "else": true
+    }
 }
 ```
