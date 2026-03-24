@@ -163,3 +163,4 @@ cython_debug/
 /docs/object_filtering.ebnf
 /dist_old
 /.vscode
+temp/
