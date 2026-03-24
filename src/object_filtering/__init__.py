@@ -37,6 +37,11 @@ from .object_filtering import (
     execute_filter_list_on_array,
     execute_filter_list_on_object_get_first_success,
     ObjectWrapper,
+    Operator,
+    LogicalOperator,
+    MultiValueBehavior,
+    ClassVariableOperator,
+    logical_expression_from_dict,
 )
 
 from .natural_language import (

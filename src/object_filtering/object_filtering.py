@@ -73,6 +73,12 @@ class _LogicalExpressionBase(dict):
 class ObjectFilter(_LogicalExpressionBase):
     _valid_keys = frozenset({"name", "description", "priority", "object_types", "logical_expression"})
 
+    name: str
+    description: str
+    priority: int
+    object_types: list
+    logical_expression: bool | dict
+
     def __init__(
             self,
             name: str = "",
@@ -88,8 +94,47 @@ class ObjectFilter(_LogicalExpressionBase):
         self["object_types"] = object_types
         self["logical_expression"] = logical_expression
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "ObjectFilter":
+        """Creates an ObjectFilter from a plain dict, recursively converting
+        nested LogicalExpressions.
+
+        Args:
+            d (dict): A dictionary with ObjectFilter keys.
+
+        Raises:
+            KeyError: If d contains unrecognized keys or is missing required
+                keys.
+            TypeError: If value types do not match expectations.
+
+        Returns:
+            ObjectFilter: The constructed ObjectFilter.
+        """
+        _check_keys(d, cls._valid_keys, cls.__name__)
+        if not isinstance(d["name"], str):
+            raise TypeError("name must be a str.")
+        if not isinstance(d["description"], str):
+            raise TypeError("description must be a str.")
+        if not isinstance(d["priority"], int):
+            raise TypeError("priority must be an int.")
+        if not isinstance(d["object_types"], list):
+            raise TypeError("object_types must be a list.")
+        return cls(
+            name=d["name"],
+            description=d["description"],
+            priority=d["priority"],
+            object_types=d["object_types"],
+            logical_expression=logical_expression_from_dict(d["logical_expression"])
+        )
+
 class Rule(_LogicalExpressionBase):
     _valid_keys = frozenset({"criterion", "operator", "comparison_value", "parameters", "multi_value_behavior"})
+
+    criterion: str
+    operator: Operator
+    comparison_value: int | float | str | bool
+    parameters: list
+    multi_value_behavior: MultiValueBehavior
 
     def __init__(
             self,
@@ -106,8 +151,51 @@ class Rule(_LogicalExpressionBase):
         self["parameters"] = parameters
         self["multi_value_behavior"] = multi_value_behavior
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "Rule":
+        """Creates a Rule from a plain dict.
+
+        Args:
+            d (dict): A dictionary with Rule keys.
+
+        Raises:
+            KeyError: If d contains unrecognized keys or is missing required
+                keys.
+            ValueError: If operator or multi_value_behavior values are not
+                valid.
+
+        Returns:
+            Rule: The constructed Rule.
+        """
+        _check_keys(d, cls._valid_keys, cls.__name__)
+        if not isinstance(d["criterion"], str):
+            raise TypeError("criterion must be a str.")
+        if d["operator"] not in VALID_OPERATORS:
+            raise ValueError(
+                f"operator must be one of {sorted(VALID_OPERATORS)}, "
+                f"got '{d['operator']}'."
+            )
+        if not isinstance(d["parameters"], list):
+            raise TypeError("parameters must be a list.")
+        if d["multi_value_behavior"] not in VALID_MULTI_VALUE_BEHAVIORS:
+            raise ValueError(
+                f"multi_value_behavior must be one of "
+                f"{sorted(VALID_MULTI_VALUE_BEHAVIORS)}, "
+                f"got '{d['multi_value_behavior']}'."
+            )
+        return cls(
+            criterion=d["criterion"],
+            operator=d["operator"],
+            comparison_value=d["comparison_value"],
+            parameters=d["parameters"],
+            multi_value_behavior=d["multi_value_behavior"]
+        )
+
 class GroupExpression(_LogicalExpressionBase):
     _valid_keys = frozenset({"logical_operator", "logical_expressions"})
+
+    logical_operator: LogicalOperator
+    logical_expressions: list
 
     def __init__(
             self,
@@ -118,9 +206,46 @@ class GroupExpression(_LogicalExpressionBase):
         self["logical_operator"] = logical_operator
         self["logical_expressions"] = logical_expressions
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "GroupExpression":
+        """Creates a GroupExpression from a plain dict, recursively converting
+        nested LogicalExpressions.
+
+        Args:
+            d (dict): A dictionary with GroupExpression keys.
+
+        Raises:
+            KeyError: If d contains unrecognized keys or is missing required
+                keys.
+            ValueError: If logical_operator is not valid.
+
+        Returns:
+            GroupExpression: The constructed GroupExpression.
+        """
+        _check_keys(d, cls._valid_keys, cls.__name__)
+        if d["logical_operator"] not in VALID_LOGICAL_OPERATORS:
+            raise ValueError(
+                f"logical_operator must be one of "
+                f"{sorted(VALID_LOGICAL_OPERATORS)}, "
+                f"got '{d['logical_operator']}'."
+            )
+        if not isinstance(d["logical_expressions"], list):
+            raise TypeError("logical_expressions must be a list.")
+        return cls(
+            logical_operator=d["logical_operator"],
+            logical_expressions=[
+                logical_expression_from_dict(exp)
+                for exp in d["logical_expressions"]
+            ]
+        )
+
 class ConditionalExpression(_LogicalExpressionBase):
     _valid_keys = frozenset({"if", "then", "else"})
     _key_aliases = {"_if": "if", "_then": "then", "_else": "else"}
+
+    _if: bool | dict
+    _then: bool | dict
+    _else: bool | dict
 
     def __init__(
             self,
@@ -133,7 +258,88 @@ class ConditionalExpression(_LogicalExpressionBase):
         self["then"] = _then
         self["else"] = _else
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "ConditionalExpression":
+        """Creates a ConditionalExpression from a plain dict, recursively
+        converting nested LogicalExpressions.
+
+        Args:
+            d (dict): A dictionary with ConditionalExpression keys.
+
+        Raises:
+            KeyError: If d contains unrecognized keys or is missing required
+                keys.
+
+        Returns:
+            ConditionalExpression: The constructed ConditionalExpression.
+        """
+        _check_keys(d, cls._valid_keys, cls.__name__)
+        return cls(
+            _if=logical_expression_from_dict(d["if"]),
+            _then=logical_expression_from_dict(d["then"]),
+            _else=logical_expression_from_dict(d["else"])
+        )
+
 LogicalExpression = bool | Rule | ConditionalExpression | GroupExpression | ObjectFilter
+
+def _check_keys(d: dict, valid_keys: frozenset[str], class_name: str) -> None:
+    """Validates that a dict has exactly the expected keys.
+
+    Args:
+        d (dict): The dictionary to check.
+        valid_keys (frozenset[str]): The set of required keys.
+        class_name (str): The name of the target class, for error messages.
+
+    Raises:
+        KeyError: If there are missing or extra keys.
+    """
+    key_set = set(d.keys())
+    missing = valid_keys - key_set
+    extra = key_set - valid_keys
+    if missing:
+        raise KeyError(
+            f"Missing keys for {class_name}: {sorted(missing)}"
+        )
+    if extra:
+        raise KeyError(
+            f"Unrecognized keys for {class_name}: {sorted(extra)}"
+        )
+
+def logical_expression_from_dict(expression: bool | dict) -> LogicalExpression:
+    """Converts a plain dict (or bool) into the appropriate LogicalExpression
+    subclass, recursively converting any nested expressions.
+
+    Args:
+        expression (bool | dict): A bool or dict representing a
+            LogicalExpression.
+
+    Raises:
+        TypeError: If expression is not a bool or dict.
+        ValueError: If the dict's keys do not match any LogicalExpression
+            type.
+
+    Returns:
+        LogicalExpression: The constructed LogicalExpression.
+    """
+    if isinstance(expression, bool):
+        return expression
+    if isinstance(expression, _LogicalExpressionBase):
+        return expression
+    if not isinstance(expression, dict):
+        raise TypeError(
+            f"Expected a bool or dict, got {type(expression).__name__}."
+        )
+    expr_type = get_logical_expression_type(expression)
+    if expr_type == Rule:
+        return Rule.from_dict(expression)
+    elif expr_type == ConditionalExpression:
+        return ConditionalExpression.from_dict(expression)
+    elif expr_type == GroupExpression:
+        return GroupExpression.from_dict(expression)
+    elif expr_type == ObjectFilter:
+        return ObjectFilter.from_dict(expression)
+    else:
+        raise ValueError("Dict keys do not match any LogicalExpression type.")
 
 def filter_criterion(func):
     """Decorator that whitelists method use for filters.
