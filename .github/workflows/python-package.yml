@@ -37,4 +37,4 @@ jobs:
       run: uv sync --locked --all-extras --dev
 
     - name: Run unit tests
-      run: uv run -m pytest tests/ -n auto -v
+      run: uv run -m pytest -v
