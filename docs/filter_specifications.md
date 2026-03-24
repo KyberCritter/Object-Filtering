@@ -4,7 +4,7 @@
 
 This file is licensed under the MIT License. See LICENSE.txt for details.
 
-Filters are JSON objects containing conditional checks and comparisons to perform on the instance variables, properties, and methods of any Python object. To use a method in a filter, the method definition must be decorated with the `@filter_criterion'. Instance variables and properties can be used without the decorator.
+Filters are JSON objects containing conditional checks and comparisons to perform on the instance variables, properties, and methods of any Python object. To use a method in a filter, the method definition must be decorated with the `@filter_criterion`. Instance variables and properties can be used without the decorator.
 
 ## Extended Backus-Naur Form of Filter Specifications
 
