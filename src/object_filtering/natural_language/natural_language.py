@@ -3,7 +3,7 @@
 
 from ..object_filtering import (
     ObjectFilter, Rule, GroupExpression, ConditionalExpression,
-    LogicalExpression,
+    LogicalExpression, SPECIAL_VARIABLES,
 )
 
 
@@ -16,6 +16,29 @@ OPERATOR_MAP = {
     ">=": "is greater than or equal to",
     ">": "is greater than"
 }
+
+# Map special variables to English phrases
+SPECIAL_VARIABLE_MAP = {
+    "$CLASS$": {
+        "==": "the object is a {value}.",
+        "!=": "the object is not a {value}.",
+    },
+}
+
+def _explain_special_variable(rule: Rule) -> str:
+    """Convert a Rule with a special variable criterion into a natural
+    language phrase.
+
+    Args:
+        rule (Rule): A Rule whose criterion is a special variable.
+
+    Returns:
+        str: A natural language description of the rule.
+    """
+    templates = SPECIAL_VARIABLE_MAP.get(rule.criterion)
+    if templates and rule.operator in templates:
+        return templates[rule.operator].format(value=rule.comparison_value)
+    return f"{rule.criterion} {OPERATOR_MAP[rule.operator]} {rule.comparison_value}."
 
 def explain_expression(expr: LogicalExpression, depth: int = 0) -> str:
     """Recursively convert a logical expression into an indented, multi-line
@@ -41,6 +64,11 @@ def explain_expression(expr: LogicalExpression, depth: int = 0) -> str:
 
     # Rule objects
     if isinstance(expr, Rule):
+        # Special variable handling
+        if expr.criterion in SPECIAL_VARIABLES:
+            text = _explain_special_variable(expr)
+            return f"{indent}{text}"
+
         params = expr.get("parameters", [])
         if params:
             if len(params) == 1:
