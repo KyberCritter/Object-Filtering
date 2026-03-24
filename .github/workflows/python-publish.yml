@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  release-build:
+  release-test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
@@ -39,6 +39,22 @@ jobs:
 
       - name: Run unit tests
         run: uv run -m pytest -v
+
+  release-build:
+    runs-on: ubuntu-latest
+    needs:
+      - release-test
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
       - name: Build release distributions
         run: |
