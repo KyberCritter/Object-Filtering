@@ -35,7 +35,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install the project
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --all-extras --dev
 
       - name: Run unit tests
         run: uv run -m pytest -v
@@ -56,10 +56,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
       - name: Build release distributions
-        run: |
-          uv pip install build
-          uv run python -m build
+        run: uv build
 
       - name: Upload distributions
         uses: actions/upload-artifact@v7
