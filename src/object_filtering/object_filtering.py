@@ -119,7 +119,7 @@ def type_name_matches(obj: Any, target_type_names: Iterable[str]) -> bool:
 
         return False
 
-def get_logical_expression_type(expression: bool | dict) -> str:
+def get_logical_expression_type(expression: bool | dict) -> type:
     """Determines the type of a logical expression based on its contents.
 
     Args:
@@ -130,24 +130,23 @@ def get_logical_expression_type(expression: bool | dict) -> str:
         ValueError: If expression is a dict but its keys do not match any logical expression.
 
     Returns:
-        str: "boolean", "rule", "conditional_expression", "group_expression", or "filter"
+        type: bool, Rule, ConditionalExpression, GroupExpression, ObjectFilter
     """
     if isinstance(expression, bool):
-        return "boolean"
+        return bool
     elif not isinstance(expression, dict):
         raise TypeError("expression is not a bool or dict")
     key_set = set(expression.keys())
-    if set(("criterion", "operator", "comparison_value", "parameters", "multi_value_behavior")).issubset(key_set):
-        return "rule"
-    if set(("if", "then", "else")).issubset(key_set):
-        return "conditional_expression"
-    if set(("logical_operator", "logical_expressions")).issubset(key_set):
-        return "group_expression"
-    if set(("name", "description", "priority", "object_types", "logical_expression")).issubset(key_set):
-        return "filter"
+    if {"criterion", "operator", "comparison_value", "parameters", "multi_value_behavior"}.issubset(key_set):
+        return Rule
+    if {"if", "then", "else"}.issubset(key_set):
+        return ConditionalExpression
+    if {"logical_operator", "logical_expressions"}.issubset(key_set):
+        return GroupExpression
+    if {"name", "description", "priority", "object_types", "logical_expression"}.issubset(key_set):
+        return ObjectFilter
 
-    raise ValueError("expression is not a logical expression of any kind " + \
-                     "(boolean, rule, group expression, conditional expression, or filter)")
+    raise ValueError("expression is not a LogicalExpression.")
 
 def is_logical_expression_valid(expression: bool | dict, obj: Any = None) -> bool:
     """Determines whether a logical expression conforms to the format from the documentation.
@@ -159,26 +158,25 @@ def is_logical_expression_valid(expression: bool | dict, obj: Any = None) -> boo
             must be present and whitelisted for its type. Defaults to None.
 
     Raises:
-        ValueError: If expression is not a logical expression of any kind
-            (boolean, rule, group expression, conditional expression, or filter)
+        ValueError: If expression is not a LogicalExpression
 
     Returns:
         bool: Whether the logical expression is valid.
     """
-    expression_type = get_logical_expression_type(expression)
-    if expression_type == "boolean":
-        return True # True and False are both valid
-    elif expression_type == "rule":
+    expr_type = get_logical_expression_type(expression)
+    if expr_type == bool:
+        # True and False are both valid
+        return True
+    elif expr_type == Rule:
         return is_rule_valid(expression, obj)
-    elif expression_type == "conditional_expression":
+    elif expr_type == ConditionalExpression:
         return is_conditional_expression_valid(expression, obj)
-    elif expression_type == "group_expression":
+    elif expr_type == GroupExpression:
         return is_group_expression_valid(expression, obj)
-    elif expression_type == "filter":
+    elif expr_type == ObjectFilter:
         return is_filter_valid(expression, obj)
     else:
-        raise ValueError("expression is not a logical expression of any kind " + \
-                        "(boolean, rule, group expression, conditional expression, or filter)")
+        raise ValueError("expression is not a LogicalExpression.")
 
 def is_rule_valid(rule: dict, obj: Any = None) -> bool:
     """Determines whether a rule conforms to the format from the documentation.
@@ -201,8 +199,8 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
         - comparison_value: The value to compare the value of the criterion with.
         - parameters (list): Passed into the method if the criterion is a method.
     """
-    if get_logical_expression_type(rule) != "rule":
-        raise FilterError("rule is not a rule.")
+    if get_logical_expression_type(rule) != Rule:
+        raise FilterError("rule is not a Rule.")
     # value types
     if not isinstance(rule["criterion"], str):
         raise FilterError("rule criterion is not a string.")
@@ -256,8 +254,8 @@ def is_conditional_expression_valid(expression: dict, obj: Any = None) -> bool:
         - then (bool | dict): The logical expression to evaluate if the "if" branch evaluates to True.
         - else (bool | dict): The logical expression to evaluate if the "if" branch evaluates to False.
     """
-    if get_logical_expression_type(expression) != "conditional_expression":
-        raise FilterError("expression is not a conditional expression.")
+    if get_logical_expression_type(expression) != ConditionalExpression:
+        raise FilterError("expression is not a ConditionalExpression.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression.values()])
 
 def is_group_expression_valid(expression: dict, obj: Any = None) -> bool:
@@ -308,7 +306,7 @@ def is_filter_valid(filter: dict, obj: Any = None) -> bool:
         raise ValueError("Size of filter dictionary must be less than or equal to " + \
                          "100 kilobytes (1024 bytes per kilobyte).")
     # filter must contain all of these keys
-    if get_logical_expression_type(filter) != "filter":
+    if get_logical_expression_type(filter) != ObjectFilter:
         return False
     # validate type of each key's value
     if not isinstance(filter["name"], str):
@@ -364,20 +362,22 @@ def sanitize_filter(filter: dict) -> dict:
     return sanitized
 
 def get_value(obj: Any, rule: dict) -> Any:
-    """Returns the value of an attribute of `obj`, based on `rule["criterion"]`.
+    """Returns the value of an attribute of `obj`, based on
+    `rule["criterion"]`.
 
     If the attribute is a method, it must be decorated with `@filter_criterion`
     (unless `obj` is a `ObjectWrapper`). If `rule["parameters"]` is not empty,
     each element of `rule["parameters"]` is passed into the method.
 
     Args:
-        obj (Any): The object that the rule will be executed with.
-            All criteria in the rules must be present and whitelisted for its type.
+        obj (Any): The object that the rule will be executed with. All criteria
+            in the rules must be present and whitelisted for its type.
         rule (dict): The rule to execute.
 
     Raises:
         ValueError: If the criterion is a method without `@filter_criterion`.
-        ValueError: If the criterion is a method with `@filter_criterion` but `_is_whitelisted` is False.
+        ValueError: If the criterion is a method with `@filter_criterion` but
+            `_is_whitelisted` is False.
 
     Returns:
         Any: The value of the attribute of `obj`.
@@ -395,11 +395,13 @@ def get_value(obj: Any, rule: dict) -> Any:
     parameters = rule["parameters"]
     if callable(method):
         if not isinstance(obj, ObjectWrapper) and not hasattr(method, "_is_whitelisted"):
-            raise AttributeError(f"{method}, a criterion in the filter, does not have the " + \
-                                 "@filter_criterion decoractor.")
+            raise AttributeError(
+                f"{method}, a criterion in the filter, does not have the @filter_criterion decorator."
+            )
         elif not isinstance(obj, ObjectWrapper) and not method._is_whitelisted:
-            raise ValueError(f"{method}, a criterion in the filter, has the " + \
-                             "@filter_criterion decoractor, but _is_whitelisted is set to False.")
+            raise ValueError(
+                f"{method}, a criterion in the filter, has the @filter_criterion decorator, but _is_whitelisted is set to False."
+            )
         else:
             return method(*parameters)
     else:
@@ -413,32 +415,31 @@ def execute_logical_expression_on_object(obj: Any, expression: bool | dict) -> b
     """Executes a logical expression on an object.
 
     Args:
-        obj (Any): The object that the logical expression will be executed with.
-            All criteria in the rules must be present and whitelisted for its type.
-        expression (bool | dict): The logical expression (boolean, rule, conditional
-            expression, or group expression) to execute.
+        obj (Any): The object that the logical expression will be executed
+            with. All criteria in the rules must be present and whitelisted for
+            its type.
+        expression (bool | dict): The logical expression (boolean, rule,
+            conditional expression, or group expression) to execute.
 
     Raises:
-        ValueError: If expression is not a logical expression of any kind (boolean,
-            rule, group expression, conditional expression, or filter)
+        ValueError: If expression is not a LogicalExpression
 
     Returns:
         bool: The evaluation of the logical expression.
     """
     expression_type = get_logical_expression_type(expression)
-    if expression_type == "boolean":
+    if expression_type == bool:
         return expression
-    if expression_type == "rule":
+    if expression_type == Rule:
         return execute_rule_on_object(obj, expression)
-    elif expression_type == "conditional_expression":
+    elif expression_type == ConditionalExpression:
         return execute_conditional_expression_on_object(obj, expression)
-    elif expression_type == "group_expression":
+    elif expression_type == GroupExpression:
         return execute_group_expression_on_object(obj, expression)
-    elif expression_type == "filter":
+    elif expression_type == ObjectFilter:
         return execute_filter_on_object(obj, expression)
     else:
-        raise ValueError("expression is not a logical expression of any kind " + \
-                         "(boolean, rule, group expression, conditional expression, or filter)")
+        raise ValueError("expression is not a LogicalExpression.")
 
 def criterion_comparison(
         obj_value: int | float | str | bool, operator: str, comparison_value: int | float | str | bool
@@ -480,8 +481,8 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
     Returns:
         bool: The result of the comparison.
     """
-    if get_logical_expression_type(rule) != "rule":
-        raise ValueError("rule does not match the format of a rule.")
+    if get_logical_expression_type(rule) != Rule:
+        raise ValueError("rule is not a Rule.")
     
     obj_value = get_value(obj, rule)
     operator = rule["operator"]
@@ -524,8 +525,8 @@ def execute_conditional_expression_on_object(obj: Any, expression: dict) -> bool
     Returns:
         bool: The evaluation of the conditional expression.
     """
-    if get_logical_expression_type(expression) != "conditional_expression":
-        raise ValueError("expression does not match the format of a conditional expression.")
+    if get_logical_expression_type(expression) != ConditionalExpression:
+        raise ValueError("expression is not a ConditionalExpression.")
     if execute_logical_expression_on_object(obj, expression["if"]):
         return execute_logical_expression_on_object(obj, expression["then"])
     else:
@@ -546,8 +547,8 @@ def execute_group_expression_on_object(obj: Any, expression: dict) -> bool:
     Returns:
         bool: The evaluation of the group expression.
     """
-    if get_logical_expression_type(expression) != "group_expression":
-        raise ValueError("expression does not match the format of a group expression.")
+    if get_logical_expression_type(expression) != GroupExpression:
+        raise ValueError("expression is not a GroupExpression.")
     if expression["logical_operator"] == "and":
         return all([execute_logical_expression_on_object(obj, exp) for exp in expression["logical_expressions"]])
     elif expression["logical_operator"] == "or":
