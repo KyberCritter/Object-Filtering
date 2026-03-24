@@ -694,6 +694,79 @@ class TestLogicalExpressionClasses(unittest.TestCase):
         assert object_filtering.execute_conditional_expression_on_object("test", conditional_expression)
         assert {"conditional_expression": conditional_expression}
 
+    def test_dot_notation_read(self):
+        rule = object_filtering.Rule("area", "==", 2, [], "none")
+        assert rule.criterion == "area"
+        assert rule.operator == "=="
+        assert rule.comparison_value == 2
+        assert rule.parameters == []
+        assert rule.multi_value_behavior == "none"
+
+        object_filter = object_filtering.ObjectFilter("test", "desc", 0, ["object"], True)
+        assert object_filter.name == "test"
+        assert object_filter.description == "desc"
+        assert object_filter.priority == 0
+        assert object_filter.object_types == ["object"]
+        assert object_filter.logical_expression == True
+
+        group = object_filtering.GroupExpression("and", [True])
+        assert group.logical_operator == "and"
+        assert group.logical_expressions == [True]
+
+        cond = object_filtering.ConditionalExpression(True, False, True)
+        assert cond._if == True
+        assert cond._then == False
+        assert cond._else == True
+
+    def test_dot_notation_write(self):
+        rule = object_filtering.Rule("area", "==", 2, [], "none")
+        rule.criterion = "x"
+        assert rule["criterion"] == "x"
+        assert rule.criterion == "x"
+
+        object_filter = object_filtering.ObjectFilter("test", "desc", 0, ["object"], True)
+        object_filter.name = "updated"
+        assert object_filter["name"] == "updated"
+
+        cond = object_filtering.ConditionalExpression(True, False, True)
+        cond._if = False
+        assert cond["if"] == False
+
+    def test_invalid_key_bracket(self):
+        rule = object_filtering.Rule()
+        with pytest.raises(KeyError):
+            rule["bad_key"] = 123
+
+        object_filter = object_filtering.ObjectFilter()
+        with pytest.raises(KeyError):
+            object_filter["unknown"] = "value"
+
+        group = object_filtering.GroupExpression()
+        with pytest.raises(KeyError):
+            group["extra"] = True
+
+        cond = object_filtering.ConditionalExpression()
+        with pytest.raises(KeyError):
+            cond["when"] = True
+
+    def test_invalid_key_dot(self):
+        rule = object_filtering.Rule()
+        with pytest.raises(AttributeError):
+            rule.bad_key = 123
+
+        with pytest.raises(AttributeError):
+            _ = rule.nonexistent
+
+    def test_delete_key(self):
+        rule = object_filtering.Rule()
+        with pytest.raises(TypeError):
+            del rule["criterion"]
+
+    def test_invalid_attribute_read(self):
+        group = object_filtering.GroupExpression()
+        with pytest.raises(AttributeError):
+            _ = group.nonexistent
+
 class TestMixedTypeFilters(unittest.TestCase):
     def test_mixed_type_filter(self):
         shape = Shape(2, 2)

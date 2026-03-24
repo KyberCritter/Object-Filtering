@@ -12,13 +12,58 @@ import numpy as np
 
 
 ABS_TOL = Decimal(0.0001)
-VALID_OPERATORS = {"<", "<=", "==", "!=", ">=", ">"}
-VALID_LOGICAL_OPERATORS = {"and", "or"}
-VALID_MULTI_VALUE_BEHAVIORS = {"none", "add", "each_meets_criterion", "each_equal_in_object"}
-SPECIAL_VARIABLES = {"$CLASS$"}
-CLASS_VARIABLE_OPERATORS = {"==", "!="}
+VALID_OPERATORS = frozenset({"<", "<=", "==", "!=", ">=", ">"})
+VALID_LOGICAL_OPERATORS = frozenset({"and", "or"})
+VALID_MULTI_VALUE_BEHAVIORS = frozenset({"none", "add", "each_meets_criterion", "each_equal_in_object"})
+SPECIAL_VARIABLES = frozenset({"$CLASS$"})
+CLASS_VARIABLE_OPERATORS = frozenset({"==", "!="})
 
-class ObjectFilter(dict):
+class _LogicalExpressionBase(dict):
+    """Base class for all LogicalExpression dict subclasses. Provides dot
+    notation access and restricts keys to the set defined by each subclass.
+    """
+    _valid_keys: frozenset[str] = frozenset()
+    _key_aliases: dict[str, str] = {}
+
+    def _resolve_key(self, key: str) -> str:
+        return self._key_aliases.get(key, key)
+
+    def __setitem__(self, key, value):
+        if key not in self._valid_keys:
+            raise KeyError(
+                f"'{key}' is not a valid key for {type(self).__name__}. "
+                f"Valid keys: {sorted(self._valid_keys)}"
+            )
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key):
+        raise TypeError(f"Cannot delete keys from {type(self).__name__}.")
+
+    def __getattr__(self, name):
+        resolved = self._resolve_key(name)
+        if resolved in self._valid_keys:
+            try:
+                return self[resolved]
+            except KeyError:
+                raise AttributeError(
+                    f"'{type(self).__name__}' has no key '{resolved}'"
+                )
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    def __setattr__(self, name, value):
+        resolved = self._resolve_key(name)
+        if resolved in self._valid_keys:
+            self[resolved] = value
+        else:
+            raise AttributeError(
+                f"'{name}' is not a valid attribute for {type(self).__name__}."
+            )
+
+class ObjectFilter(_LogicalExpressionBase):
+    _valid_keys = frozenset({"name", "description", "priority", "object_types", "logical_expression"})
+
     def __init__(
             self,
             name: str = "",
@@ -34,7 +79,9 @@ class ObjectFilter(dict):
         self["object_types"] = object_types
         self["logical_expression"] = logical_expression
 
-class Rule(dict):
+class Rule(_LogicalExpressionBase):
+    _valid_keys = frozenset({"criterion", "operator", "comparison_value", "parameters", "multi_value_behavior"})
+
     def __init__(
             self,
             criterion: str = "__class__",
@@ -50,7 +97,9 @@ class Rule(dict):
         self["parameters"] = parameters
         self["multi_value_behavior"] = multi_value_behavior
 
-class GroupExpression(dict):
+class GroupExpression(_LogicalExpressionBase):
+    _valid_keys = frozenset({"logical_operator", "logical_expressions"})
+
     def __init__(
             self,
             logical_operator: Literal["and", "or"] = "and",
@@ -60,7 +109,10 @@ class GroupExpression(dict):
         self["logical_operator"] = logical_operator
         self["logical_expressions"] = logical_expressions
 
-class ConditionalExpression(dict):
+class ConditionalExpression(_LogicalExpressionBase):
+    _valid_keys = frozenset({"if", "then", "else"})
+    _key_aliases = {"_if": "if", "_then": "then", "_else": "else"}
+
     def __init__(
             self,
             _if: bool | dict = True,
