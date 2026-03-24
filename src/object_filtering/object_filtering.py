@@ -12,11 +12,11 @@ import numpy as np
 
 
 ABS_TOL = Decimal(0.0001)
-VALID_OPERATORS = set(["<", "<=", "==", "!=", ">=", ">"])
-VALID_LOGICAL_OPERATORS = set(["and", "or"])
-VALID_MULTI_VALUE_BEHAVIORS = set(["none", "add", "each_meets_criterion", "each_equal_in_object"])
-SPECIAL_VARIABLES = set(["$CLASS$"])
-CLASS_VARIABLE_OPERATORS = set(["==", "!="])
+VALID_OPERATORS = {"<", "<=", "==", "!=", ">=", ">"}
+VALID_LOGICAL_OPERATORS = {"and", "or"}
+VALID_MULTI_VALUE_BEHAVIORS = {"none", "add", "each_meets_criterion", "each_equal_in_object"}
+SPECIAL_VARIABLES = {"$CLASS$"}
+CLASS_VARIABLE_OPERATORS = {"==", "!="}
 
 class ObjectFilter(dict):
     def __init__(
