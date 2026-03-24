@@ -20,8 +20,12 @@ CLASS_VARIABLE_OPERATORS = {"==", "!="}
 
 class ObjectFilter(dict):
     def __init__(
-            self, name: str = "", description: str = "", priority: int = 0,
-            object_types: list = ["object"], logical_expression: bool | dict = True
+            self,
+            name: str = "",
+            description: str = "",
+            priority: int = 0,
+            object_types: list = ["object"],
+            logical_expression: bool | dict = True
         ) -> None:
         super().__init__()
         self["name"] = name
@@ -32,8 +36,11 @@ class ObjectFilter(dict):
 
 class Rule(dict):
     def __init__(
-            self, criterion: str = "__class__", operator: str = "==",
-            comparison_value: int | float | str | bool = "", parameters: list = [],
+            self,
+            criterion: str = "__class__",
+            operator: Literal["==", "!=", ">", ">=", "<", "<="] = "==",
+            comparison_value: int | float | str | bool = "",
+            parameters: list = [],
             multi_value_behavior: str = "none"
         ) -> None:
         super().__init__()
@@ -45,7 +52,9 @@ class Rule(dict):
 
 class GroupExpression(dict):
     def __init__(
-            self, logical_operator: str = "and", logical_expressions: list = []
+            self,
+            logical_operator: Literal["and", "or"] = "and",
+            logical_expressions: list = []
         ) -> None:
         super().__init__()
         self["logical_operator"] = logical_operator
@@ -53,13 +62,15 @@ class GroupExpression(dict):
 
 class ConditionalExpression(dict):
     def __init__(
-            self, if_branch: bool | dict = True, then_branch: bool | dict = True,
-            else_branch: bool | dict = True
+            self,
+            _if: bool | dict = True,
+            _then: bool | dict = True,
+            _else: bool | dict = True
         ) -> None:
         super().__init__()
-        self["if"] = if_branch
-        self["then"] = then_branch
-        self["else"] = else_branch
+        self["if"] = _if
+        self["then"] = _then
+        self["else"] = _else
 
 LogicalExpression = bool | Rule | ConditionalExpression | GroupExpression | ObjectFilter
 
@@ -83,8 +94,9 @@ Helper and Sanitization Functions
 """
 
 def type_name_matches(obj: Any, target_type_names: Iterable[str]) -> bool:
-    """Evaluates whether obj is an instance of a class with a name matching target_type_name.
-    If obj is an ObjectWrapper, the types of the elements of obj._obj are checked instead.
+    """Evaluates whether obj is an instance of a class with a name matching
+    target_type_name. If obj is an ObjectWrapper, the types of the elements of
+    obj._obj are checked instead.
 
     Args:
         obj (Any): The object to check the type of.
@@ -120,10 +132,10 @@ def type_name_matches(obj: Any, target_type_names: Iterable[str]) -> bool:
         return False
 
 def get_logical_expression_type(expression: LogicalExpression) -> type:
-    """Determines the type of a logical expression based on its contents.
+    """Determines the type of a LogicalExpression based on its contents.
 
     Args:
-        expression (LogicalExpression): A logical expression to evaluate.
+        expression (LogicalExpression): A LogicalExpression to evaluate.
 
     Raises:
         TypeError: If expression is not a LogicalExpression.
@@ -150,7 +162,7 @@ def get_logical_expression_type(expression: LogicalExpression) -> type:
     raise ValueError("expression is not a LogicalExpression.")
 
 def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) -> bool:
-    """Determines whether a logical expression conforms to the format from the
+    """Determines whether a LogicalExpression conforms to the format from the
     documentation.
 
     Args:
@@ -164,7 +176,7 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
         ValueError: If expression is not a LogicalExpression
 
     Returns:
-        bool: Whether the logical expression is valid.
+        bool: Whether the LogicalExpression is valid.
     """
     expr_type = get_logical_expression_type(expression)
     if expr_type == bool:
@@ -263,21 +275,23 @@ def is_conditional_expression_valid(expression: ConditionalExpression, obj: Any 
         raise FilterError("expression is not a ConditionalExpression.")
     return all([is_logical_expression_valid(exp, obj) for exp in expression.values()])
 
-def is_group_expression_valid(expression: dict, obj: Any = None) -> bool:
-    """Determines whether the group expression conforms to the format from the
+def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> bool:
+    """Determines whether the GroupExpression conforms to the format from the
     documentation.
 
     Args:
-        expression (dict): The group expression to check the validity of.
-        obj (Any): The object that will be filtered. All criteria in the rules
+        expression (GroupExpression): The GroupExpression to check the validity
+            of.
+        obj (Any): The object that will be filtered. All criteria in the Rules
             must be present and whitelisted for its type. Defaults to None.
 
     Returns:
-        bool: Whether the group expression is valid.
+        bool: Whether the GroupExpression is valid.
     
     - Required keys and their values' data types:
         - logical_operator (str): "and" or "or"
-        - logical_expressions list([bool | dict]): The logical expressions to evaluate.
+        - logical_expressions (list[LogicalExpression]): The LogicalExpressions
+            to evaluate.
     """
     if not expression["logical_operator"] in VALID_LOGICAL_OPERATORS:   # must be "and" or "or"
         raise FilterError("expression logical_operator is not a valid logical operator.")
@@ -293,11 +307,10 @@ def is_filter_valid(filter: ObjectFilter, obj: Any = None) -> bool:
             must be present and whitelisted for its type. Defaults to None.
 
     Raises:
-        ValueError: If the filter dictionary exceeds 100 kilobytes (102,400
-            bytes).
+        ValueError: If the ObjectFilter exceeds 100 kilobytes (102,400 bytes)
 
     Returns:
-        bool: Whether the filter is valid.
+        bool: Whether the ObjectFilter is valid.
 
     - Keys and their required data types:
         - name (str): A print-friendly name for ordering.
@@ -359,7 +372,7 @@ def sanitize_filter(filter: ObjectFilter) -> ObjectFilter:
             ASCII range 32 to 126 removed.
     """
     if not isinstance(filter, dict):
-        raise TypeError("filter must be a dictionary.")
+        raise TypeError("filter must be an ObjectFilter.")
     
     sanitized = {}
     for key, value in filter.items():
@@ -406,11 +419,11 @@ def get_value(obj: Any, rule: dict) -> Any:
     if callable(method):
         if not isinstance(obj, ObjectWrapper) and not hasattr(method, "_is_whitelisted"):
             raise AttributeError(
-                f"{method}, a criterion in the filter, does not have the @filter_criterion decorator."
+                f"{method}, a criterion in the ObjectFilter, does not have the @filter_criterion decorator."
             )
         elif not isinstance(obj, ObjectWrapper) and not method._is_whitelisted:
             raise ValueError(
-                f"{method}, a criterion in the filter, has the @filter_criterion decorator, but _is_whitelisted is set to False."
+                f"{method}, a criterion in the ObjectFilter, has the @filter_criterion decorator, but _is_whitelisted is set to False."
             )
         else:
             return method(*parameters)
@@ -422,7 +435,7 @@ Execution Functions
 """
 
 def execute_logical_expression_on_object(obj: Any, expression: LogicalExpression) -> bool:
-    """Executes a logical expression on an object.
+    """Executes a LogicalExpression on an object.
 
     Args:
         obj (Any): The object that the LogicalExpression will be executed with.
@@ -543,20 +556,20 @@ def execute_conditional_expression_on_object(obj: Any, expression: dict) -> bool
     else:
         return execute_logical_expression_on_object(obj, expression["else"])
     
-def execute_group_expression_on_object(obj: Any, expression: dict) -> bool:
-    """Executes a group expression on an object.
+def execute_group_expression_on_object(obj: Any, expression: GroupExpression) -> bool:
+    """Executes a GroupExpression on an object.
 
     Args:
-        obj (Any): The object that the group expression will be executed with.
+        obj (Any): The object that the GroupExpression will be executed with.
             All criteria in the rules must be present and whitelisted for its type.
-        expression (dict): The group expression to execute.
+        expression (GroupExpression): The GroupExpression to execute.
 
     Raises:
-        ValueError: If expression does not match the format of a group expression.
-        ValueError: If expression["logical_operator"] != "and" and expression["logical_operator"] != "or"
+        ValueError: If expression does not match the format of a GroupExpression.
+        ValueError: If expression["logical_operator"] is not "and" or "or"
 
     Returns:
-        bool: The evaluation of the group expression.
+        bool: The evaluation of the GroupExpression.
     """
     if get_logical_expression_type(expression) != GroupExpression:
         raise ValueError("expression is not a GroupExpression.")
@@ -565,73 +578,84 @@ def execute_group_expression_on_object(obj: Any, expression: dict) -> bool:
     elif expression["logical_operator"] == "or":
         return any([execute_logical_expression_on_object(obj, exp) for exp in expression["logical_expressions"]])
     else:
-        raise ValueError("Group expression's logical operator must be \"and\" or \"or\".")
+        raise ValueError("GroupExpression's logical operator must be \"and\" or \"or\".")
 
-def execute_filter_on_object(obj, filter: dict, sanitize: bool = True) -> bool:
-    """Evaluates a filter on an object.
-    Returns True if all logical expressions succeed or False if any of them fail.
+def execute_filter_on_object(obj, filter: ObjectFilter, sanitize: bool = True) -> bool:
+    """Evaluates a ObjectFilter on an object. Returns True if all
+    LogicalExpressions succeed or False if any fail.
 
     Args:
         obj: Any object.
-        filter (dict): A filter to execute.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside
-            the ASCII range 32 to 126. Defaults to True.
+        filter (ObjectFilter): An ObjectFilter to execute.
+        sanitize (bool, optional): Whether or not to santize the ObjectFilters
+            before execution. Defaults to True.
 
     Raises:
-        ValueError: If the filter is not valid, according to the documentation.
+        ValueError: If the ObjectFilter is not valid, according to the
+            documentation.
 
     Returns:
-        bool: Whether all the logical expressions in the filter evaluated to True.
+        bool: Whether all the LogicalExpressions in the ObjectFilter evaluated
+            to True.
     """
     if sanitize:
         filter = sanitize_filter(filter)
     if not is_filter_valid(filter, obj):
-        raise ValueError("Filter is not valid.")
+        raise ValueError("ObjectFilter is not valid.")
     
     return execute_logical_expression_on_object(obj, filter["logical_expression"])
 
 def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: bool = True) -> np.ndarray[bool]:
-    """Evaluates a filter on each element in an array.
-    Returns an array with the result of evaluating the filter on each element.
+    """Evaluates an ObjectFilter on each element in an array. Returns an array
+    with the result of evaluating the ObjectFilter on each element.
 
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
-        filter (dict): A filter to execute.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside
-            the ASCII range 32 to 126. Defaults to True.
+        filter (ObjectFilter): An ObjectFilter to execute.
+        sanitize (bool, optional): Whether or not to santize the ObjectFilters
+            before execution. Defaults to True.
 
     Raises:
-        ValueError: If the filter is not valid, according to the documentation.
+        ValueError: If the ObjectFilter is not valid, according to the
+            documentation.
 
     Returns:
-        np.ndarray[bool]: For each element of obj_array, whether the filter evaluated to True.
+        np.ndarray[bool]: For each element of obj_array, whether the
+            ObjectFilter evaluated to True.
     """
     if sanitize:
         filter = sanitize_filter(filter)
     # use first element because np.ndarray element types are homogeneous
     if not is_filter_valid(filter, obj_array[0]):
-        raise ValueError("Filter is not valid.")
+        raise ValueError("ObjectFilter is not valid.")
     
     return np.array([execute_filter_on_object(obj, filter, sanitize=False) for obj in obj_array], dtype=bool)
 
 def sort_filter_list(filter_list: list[dict]) -> list[dict]:
     return sorted(filter_list, key=lambda x: (x["priority"], x["name"]))
 
-def execute_filter_list_on_object(obj: Any, filter_list: list[dict], sanitize: bool = True) -> np.ndarray[bool]:
-    """Evaluates a list of filters on an object.
-    Returns an array with the evaluation result of each filter.
+def execute_filter_list_on_object(
+        obj: Any,
+        filter_list: list[ObjectFilter],
+        sanitize: bool = True
+    ) -> np.ndarray[bool]:
+    """Evaluates a list of filters on an object. Returns an array with the
+    evaluation result of each ObjectFilter.
 
     This function sorts `filter_list` before executing its elements.
-    Filters are primarily ordered by `filter["priority"]` and secondarily ordered by `filter["name"]`.
+    ObjectFilters are primarily ordered by priority (ascending) and secondarily
+    ordered by name (ascending).
 
     Args:
         obj (Any): Any object.
-        filter_list (list[dict]): A list of filters to execute on `obj`.
-        sanitize (bool, optional): Whether or not to remove character from the filter outside
-            the ASCII range 32 to 126. Defaults to True.
+        filter_list (list[ObjectFilter]): A list of ObjectFilter to execute on
+            `obj`.
+        sanitize (bool, optional): Whether or not to santize the ObjectFilters
+            before execution. Defaults to True.
 
     Returns:
-        np.ndarray[bool]: For each filter, whether it evaluated to True on `obj`.
+        np.ndarray[bool]: For each ObjectFilter, whether it evaluated to True
+            on `obj`.
     """
     filter_list = sort_filter_list(filter_list)
     if sanitize:
@@ -639,17 +663,19 @@ def execute_filter_list_on_object(obj: Any, filter_list: list[dict], sanitize: b
     return np.array([execute_filter_on_object(obj, f, sanitize=False) for f in filter_list], dtype=bool)
 
 def execute_filter_list_on_array(
-        obj_array: np.ndarray[Any], filter_list: list[dict], sanitize: bool = True
+        obj_array: np.ndarray[Any],
+        filter_list: list[dict],
+        sanitize: bool = True
     ) -> np.ndarray[bool]:
     """Evaluates a list of filters on every object in an array. Returns an
-    array with the evaluation result of the filter list on each element.
+    array with the evaluation result of the ObjectFilter list on each element.
 
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
         filter_list (list[dict]): A list of ObjectFilters to execute on the
             elements of `obj_array`.
-        sanitize (bool, optional): Whether or not to remove character from the
-            ObjectFilter outside the ASCII range 32 to 126. Defaults to True.
+        sanitize (bool, optional): Whether or not to santize the ObjectFilters
+            before execution. Defaults to True.
 
     Returns:
         np.ndarray[bool]: For each element of `obj_array`, whether the
