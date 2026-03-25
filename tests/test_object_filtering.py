@@ -32,13 +32,21 @@ class Point:
     @object_filtering.filter_criterion
     def area(self) -> int:
         return 0
-    
+
     @object_filtering.filter_criterion
     def volume(self, z: int | float = 0) -> int:
         return 0
-    
+
     def secret_method(self) -> None:
         return
+
+class Circle:
+    def __init__(self, radius: int | float) -> None:
+        self.radius: int | float = radius
+
+    @object_filtering.filter_criterion
+    def area(self) -> float:
+        return 3.14159 * self.radius ** 2
 
 SHAPE_1 = Shape(1, 2)
 SHAPE_2 = Shape(2, 4)
@@ -513,6 +521,37 @@ CLASS_CONDITIONAL_FILTER = {
     "logical_expression": CLASS_CONDITIONAL
 }
 
+# Filter with type-specific attributes: x for Shape, radius for Circle
+CLASS_DISJOINT_ATTRS_FILTER = {
+    "name": "Disjoint Attributes Filter",
+    "description": "Checks x for Shapes and radius for Circles.",
+    "priority": 0,
+    "object_types": ["Shape", "Circle"],
+    "logical_expression": {
+        "if": {
+            "criterion": "$CLASS$",
+            "operator": "==",
+            "comparison_value": "Shape",
+            "parameters": [],
+            "multi_value_behavior": "none"
+        },
+        "then": {
+            "criterion": "x",
+            "operator": ">=",
+            "comparison_value": 2,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        },
+        "else": {
+            "criterion": "radius",
+            "operator": ">=",
+            "comparison_value": 1,
+            "parameters": [],
+            "multi_value_behavior": "none"
+        }
+    }
+}
+
 HIGH_X_FILTER = object_filtering.ObjectFilter(
     name="High X",
     description="Checks for a high x value.",
@@ -570,26 +609,24 @@ class TestObjectWrapper(unittest.TestCase):
 
 class TestLogicalExpressionValidity(unittest.TestCase):
     def test_rule(self):
-        assert object_filtering.is_rule_valid(RULE_X, SHAPE_BIG)
-        assert object_filtering.is_rule_valid(RULE_Y, SHAPE_BIG)
-        assert object_filtering.is_rule_valid(RULE_VOLUME, SHAPE_BIG)
-        with pytest.raises(object_filtering.FilterError):
-            object_filtering.is_rule_valid(RULE_SECRET, SHAPE_BIG)  # not decorated with @object_filtering.filter_criterion
+        assert object_filtering.is_rule_valid(RULE_X)
+        assert object_filtering.is_rule_valid(RULE_Y)
+        assert object_filtering.is_rule_valid(RULE_VOLUME)
+        assert object_filtering.is_rule_valid(RULE_SECRET)
 
     def test_conditional(self):
-        assert object_filtering.is_conditional_expression_valid(CONDITIONAL_1, SHAPE_BIG)
-        assert object_filtering.is_conditional_expression_valid(CONDITIONAL_2, SHAPE_BIG)
+        assert object_filtering.is_conditional_expression_valid(CONDITIONAL_1)
+        assert object_filtering.is_conditional_expression_valid(CONDITIONAL_2)
 
     def test_group(self):
-        assert object_filtering.is_group_expression_valid(GROUP_1, SHAPE_BIG)
-        assert object_filtering.is_group_expression_valid(GROUP_2, SHAPE_BIG)
+        assert object_filtering.is_group_expression_valid(GROUP_1)
+        assert object_filtering.is_group_expression_valid(GROUP_2)
 
     def test_logical(self):
         logical_expressions = [RULE_X, RULE_Y, RULE_AREA, RULE_VOLUME, CONDITIONAL_1, CONDITIONAL_2, GROUP_1, GROUP_2]
         for exp in logical_expressions:
-            assert object_filtering.is_logical_expression_valid(exp, SHAPE_BIG)
-        with pytest.raises(object_filtering.FilterError):
-            object_filtering.is_logical_expression_valid(RULE_SECRET, SHAPE_BIG)
+            assert object_filtering.is_logical_expression_valid(exp)
+        assert object_filtering.is_logical_expression_valid(RULE_SECRET)
 
 class TestLogicalExpressionResult(unittest.TestCase):
     def test_rule(self):
@@ -1266,12 +1303,12 @@ class TestImplicitDictConversion(unittest.TestCase):
 
     def test_is_logical_expression_valid_with_dict(self):
         d = dict(self.RULE_DICT)
-        assert object_filtering.is_logical_expression_valid(d, SHAPE_1)
+        assert object_filtering.is_logical_expression_valid(d)
         self._assert_still_plain_dict(d)
 
     def test_is_rule_valid_with_dict(self):
         d = dict(self.RULE_DICT)
-        assert object_filtering.is_rule_valid(d, SHAPE_1)
+        assert object_filtering.is_rule_valid(d)
         self._assert_still_plain_dict(d)
 
     def test_is_conditional_expression_valid_with_dict(self):
@@ -1280,7 +1317,7 @@ class TestImplicitDictConversion(unittest.TestCase):
             "then": True,
             "else": False
         }
-        assert object_filtering.is_conditional_expression_valid(d, SHAPE_1)
+        assert object_filtering.is_conditional_expression_valid(d)
         self._assert_still_plain_dict(d)
 
     def test_is_group_expression_valid_with_dict(self):
@@ -1288,12 +1325,12 @@ class TestImplicitDictConversion(unittest.TestCase):
             "logical_operator": "and",
             "logical_expressions": [dict(self.RULE_DICT)]
         }
-        assert object_filtering.is_group_expression_valid(d, SHAPE_1)
+        assert object_filtering.is_group_expression_valid(d)
         self._assert_still_plain_dict(d)
 
     def test_is_filter_valid_with_dict(self):
         d = dict(self.FILTER_DICT)
-        assert object_filtering.is_filter_valid(d, SHAPE_1)
+        assert object_filtering.is_filter_valid(d)
         self._assert_still_plain_dict(d)
 
     def test_get_value_with_dict(self):
@@ -1372,10 +1409,10 @@ class TestFilterList(unittest.TestCase):
 
 class TestClassVariable(unittest.TestCase):
     def test_class_variable_rule_validity(self):
-        assert object_filtering.is_rule_valid(RULE_CLASS_EQ, SHAPE_BIG)
-        assert object_filtering.is_rule_valid(RULE_CLASS_NEQ, SHAPE_BIG)
+        assert object_filtering.is_rule_valid(RULE_CLASS_EQ)
+        assert object_filtering.is_rule_valid(RULE_CLASS_NEQ)
         with pytest.raises(object_filtering.FilterError):
-            object_filtering.is_rule_valid(RULE_CLASS_INVALID_OP, SHAPE_BIG)
+            object_filtering.is_rule_valid(RULE_CLASS_INVALID_OP)
 
     def test_class_variable_invalid_operators(self):
         for op in ("<", "<=", ">=", ">"):
@@ -1387,7 +1424,7 @@ class TestClassVariable(unittest.TestCase):
                 "multi_value_behavior": "none"
             }
             with pytest.raises(object_filtering.FilterError):
-                object_filtering.is_rule_valid(rule, SHAPE_BIG)
+                object_filtering.is_rule_valid(rule)
 
     def test_class_variable_rule_execution(self):
         assert object_filtering.execute_rule_on_object(SHAPE_BIG, RULE_CLASS_EQ)
@@ -1413,6 +1450,20 @@ class TestClassVariable(unittest.TestCase):
         assert not object_filtering.execute_filter_on_object(SHAPE_SMALL, CLASS_CONDITIONAL_FILTER)
         point = Point(0, 0)
         assert object_filtering.execute_filter_on_object(point, CLASS_CONDITIONAL_FILTER)
+
+    def test_class_variable_disjoint_attributes(self):
+        """Filter with type-specific attributes should not fail validation
+        when the object lacks an attribute guarded by a $CLASS$ check."""
+        # Shape(3,4) has x=3 >= 2, passes
+        assert object_filtering.execute_filter_on_object(SHAPE_BIG, CLASS_DISJOINT_ATTRS_FILTER)
+        # Shape(1,1) has x=1 < 2, fails
+        assert not object_filtering.execute_filter_on_object(SHAPE_SMALL, CLASS_DISJOINT_ATTRS_FILTER)
+        # Circle(5) has radius=5 >= 1, passes (Circle has no x attribute)
+        circle = Circle(5)
+        assert object_filtering.execute_filter_on_object(circle, CLASS_DISJOINT_ATTRS_FILTER)
+        # Circle(0.5) has radius=0.5 < 1, fails
+        small_circle = Circle(0.5)
+        assert not object_filtering.execute_filter_on_object(small_circle, CLASS_DISJOINT_ATTRS_FILTER)
 
     def test_class_variable_with_object_wrapper(self):
         wrapper = object_filtering.ObjectWrapper(SHAPE_1)

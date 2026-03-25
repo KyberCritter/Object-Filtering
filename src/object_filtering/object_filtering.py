@@ -481,7 +481,7 @@ def get_logical_expression_type(
 
     raise ValueError("expression is not a LogicalExpression.")
 
-def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) -> bool:
+def is_logical_expression_valid(expression: LogicalExpression) -> bool:
     """Determines whether a LogicalExpression conforms to the format from the
     documentation.
 
@@ -489,9 +489,6 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
         expression (LogicalExpression): The LogicalExpression to check the
             validity of. A plain dict is implicitly converted to the
             appropriate _LogicalExpressionBase subclass.
-        obj (Any): The object that will be filtered. All criteria in the Rules
-            must be present and whitelisted for its type. Defaults to None. If
-            None, criteria validity checks will be skipped.
 
     Raises:
         ValueError: If expression is not a LogicalExpression
@@ -506,30 +503,26 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
         # True and False are both valid
         return True
     elif expr_type == Rule:
-        return is_rule_valid(expression, obj)
+        return is_rule_valid(expression)
     elif expr_type == ConditionalExpression:
-        return is_conditional_expression_valid(expression, obj)
+        return is_conditional_expression_valid(expression)
     elif expr_type == GroupExpression:
-        return is_group_expression_valid(expression, obj)
+        return is_group_expression_valid(expression)
     elif expr_type == ObjectFilter:
-        return is_filter_valid(expression, obj)
+        return is_filter_valid(expression)
     else:
         raise ValueError("expression is not a LogicalExpression.")
 
-def is_rule_valid(rule: dict | Rule, obj: Any = None) -> bool:
+def is_rule_valid(rule: dict | Rule) -> bool:
     """Determines whether a rule conforms to the format from the documentation.
-    All methods used as criteria must be decorated with @filter_criterion.
     Raises an error if the rule is not valid.
 
     Args:
         rule (dict | Rule): The rule to check the validity of. A plain dict is
             implicitly converted to a Rule object.
-        obj (Any): The object that will be filtered.
-            All criteria in the rules must be present and whitelisted for its type.
-            Defaults to None.
 
     Returns:
-        bool: Whether the rule is valid
+        bool: Whether the rule is valid.
 
     - Required keys and their values' data types:
         - criterion (str): The variable or method to compare against.
@@ -552,31 +545,17 @@ def is_rule_valid(rule: dict | Rule, obj: Any = None) -> bool:
         raise FilterError("rule parameter is not a list.")
     if not isinstance(rule["multi_value_behavior"], str):
         raise FilterError("rule multi_value_behavior is not a string.")
-    
-    if obj is not None:
-        # value checks
-        if rule["operator"].upper() not in VALID_OPERATORS:
-            raise FilterError("rule operator is not a valid operator.")
-        # special variable handling
-        if rule["criterion"] in SPECIAL_VARIABLES:
-            if rule["criterion"] == "$CLASS$" and rule["operator"] not in CLASS_VARIABLE_OPERATORS:
-                raise FilterError("$CLASS$ only supports == and != operators.")
-            return True
-        if not hasattr(obj, rule.criterion):
-            raise FilterError(f"method {rule.criterion} does not exist in obj.")
-        method = getattr(obj, rule.criterion)
-        # check if method is decorated with @filter_criterion
-        if not isinstance(obj, ObjectWrapper):
-            if callable(method) and not hasattr(method, "_is_whitelisted"):
-                raise FilterError(f"method {rule['criterion']} is not whitelisted in obj. No _is_whitelisted method.")
-            if hasattr(method, "_is_whitelisted") and not method._is_whitelisted:
-                raise FilterError(f"method {rule['criterion']} is not whitelisted in obj.")
-            if rule["multi_value_behavior"] not in VALID_MULTI_VALUE_BEHAVIORS:
-                raise FilterError(f"rule multi_value_behavior is not a valid multi_value_behavior.")
+    # value checks
+    if rule["operator"].upper() not in VALID_OPERATORS:
+        raise FilterError("rule operator is not a valid operator.")
+    # special variable handling
+    if rule["criterion"] in SPECIAL_VARIABLES:
+        if rule["criterion"] == "$CLASS$" and rule["operator"] not in CLASS_VARIABLE_OPERATORS:
+            raise FilterError("$CLASS$ only supports == and != operators.")
 
     return True
 
-def is_conditional_expression_valid(expression: dict | ConditionalExpression, obj: Any = None) -> bool:
+def is_conditional_expression_valid(expression: dict | ConditionalExpression) -> bool:
     """Determines whether a ConditionalExpression conforms to the format from
     the documentation. Raises an error if the ConditionalExpression is not
     valid.
@@ -585,12 +564,10 @@ def is_conditional_expression_valid(expression: dict | ConditionalExpression, ob
         expression (dict | ConditionalExpression): The ConditionalExpression to
             check the validity of. A plain dict is implicitly converted to a
             ConditionalExpression object.
-        obj (Any): The object that will be filtered. All criteria in the Rules
-            must be present and whitelisted for its type. Defaults to None.
 
     Returns:
         bool: Whether the conditional expression is valid.
-    
+
     - Required keys and their values' data types:
         - if (LogicalExpression): The first LogicalExpression to evaluate
         - then (LogicalExpression): The LogicalExpression to evaluate if the
@@ -602,9 +579,9 @@ def is_conditional_expression_valid(expression: dict | ConditionalExpression, ob
         expression = dict_to_logical_expression(expression)
     if get_logical_expression_type(expression) != ConditionalExpression:
         raise FilterError("expression is not a ConditionalExpression.")
-    return all([is_logical_expression_valid(exp, obj) for exp in expression.values()])
+    return all([is_logical_expression_valid(exp) for exp in expression.values()])
 
-def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> bool:
+def is_group_expression_valid(expression: GroupExpression) -> bool:
     """Determines whether the GroupExpression conforms to the format from the
     documentation.
 
@@ -612,8 +589,6 @@ def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> b
         expression (GroupExpression): The GroupExpression to check the validity
             of. A plain dict is implicitly converted to the appropriate
             _LogicalExpressionBase subclass.
-        obj (Any): The object that will be filtered. All criteria in the Rules
-            must be present and whitelisted for its type. Defaults to None.
 
     Returns:
         bool: Whether the GroupExpression is valid.
@@ -627,7 +602,7 @@ def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> b
         expression = dict_to_logical_expression(expression)
     if not expression["logical_operator"] in VALID_LOGICAL_OPERATORS:   # must be "and" or "or"
         raise FilterError("expression logical_operator is not a valid logical operator.")
-    return all([is_logical_expression_valid(exp, obj) for exp in expression["logical_expressions"]])
+    return all([is_logical_expression_valid(exp) for exp in expression["logical_expressions"]])
 
 def is_filter_valid(filter: ObjectFilter, obj: Any = None) -> bool:
     """Determines whether an ObjectFilter conforms to the format from the
@@ -679,7 +654,7 @@ def is_filter_valid(filter: ObjectFilter, obj: Any = None) -> bool:
     if filter["priority"] < 0:
         raise ValueError("filter priority is less than 0.")
     
-    if not is_logical_expression_valid(filter["logical_expression"], obj):
+    if not is_logical_expression_valid(filter["logical_expression"]):
         return False
     # validate obj type
     if obj is not None and not type_name_matches(obj, filter["object_types"]):
