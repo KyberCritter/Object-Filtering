@@ -487,10 +487,11 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
 
     Args:
         expression (LogicalExpression): The LogicalExpression to check the
-            validity of.
+            validity of. A plain dict is implicitly converted to the
+            appropriate _LogicalExpressionBase subclass.
         obj (Any): The object that will be filtered. All criteria in the Rules
             must be present and whitelisted for its type. Defaults to None. If
-                None, criteria validity checks will be skipped.
+            None, criteria validity checks will be skipped.
 
     Raises:
         ValueError: If expression is not a LogicalExpression
@@ -515,13 +516,14 @@ def is_logical_expression_valid(expression: LogicalExpression, obj: Any = None) 
     else:
         raise ValueError("expression is not a LogicalExpression.")
 
-def is_rule_valid(rule: dict, obj: Any = None) -> bool:
+def is_rule_valid(rule: dict | Rule, obj: Any = None) -> bool:
     """Determines whether a rule conforms to the format from the documentation.
     All methods used as criteria must be decorated with @filter_criterion.
     Raises an error if the rule is not valid.
 
     Args:
-        rule (dict): The rule to check the validity of.
+        rule (dict | Rule): The rule to check the validity of. A plain dict is
+            implicitly converted to a Rule object.
         obj (Any): The object that will be filtered.
             All criteria in the rules must be present and whitelisted for its type.
             Defaults to None.
@@ -560,10 +562,9 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
             if rule["criterion"] == "$CLASS$" and rule["operator"] not in CLASS_VARIABLE_OPERATORS:
                 raise FilterError("$CLASS$ only supports == and != operators.")
             return True
-        try:    # check if method exists
-            method = getattr(obj, rule["criterion"])
-        except:
-            raise FilterError(f"method {rule['criterion']} does not exist in obj.")
+        if not hasattr(obj, rule.criterion):
+            raise FilterError(f"method {rule.criterion} does not exist in obj.")
+        method = getattr(obj, rule.criterion)
         # check if method is decorated with @filter_criterion
         if not isinstance(obj, ObjectWrapper):
             if callable(method) and not hasattr(method, "_is_whitelisted"):
@@ -575,13 +576,15 @@ def is_rule_valid(rule: dict, obj: Any = None) -> bool:
 
     return True
 
-def is_conditional_expression_valid(expression: ConditionalExpression, obj: Any = None) -> bool:
+def is_conditional_expression_valid(expression: dict | ConditionalExpression, obj: Any = None) -> bool:
     """Determines whether a ConditionalExpression conforms to the format from
     the documentation. Raises an error if the ConditionalExpression is not
     valid.
 
     Args:
-        expression (dict): The ConditionalExpression to check the validity of.
+        expression (dict | ConditionalExpression): The ConditionalExpression to
+            check the validity of. A plain dict is implicitly converted to a
+            ConditionalExpression object.
         obj (Any): The object that will be filtered. All criteria in the Rules
             must be present and whitelisted for its type. Defaults to None.
 
@@ -607,13 +610,14 @@ def is_group_expression_valid(expression: GroupExpression, obj: Any = None) -> b
 
     Args:
         expression (GroupExpression): The GroupExpression to check the validity
-            of.
+            of. A plain dict is implicitly converted to the appropriate
+            _LogicalExpressionBase subclass.
         obj (Any): The object that will be filtered. All criteria in the Rules
             must be present and whitelisted for its type. Defaults to None.
 
     Returns:
         bool: Whether the GroupExpression is valid.
-    
+
     - Required keys and their values' data types:
         - logical_operator (str): "and" or "or"
         - logical_expressions (list[LogicalExpression]): The LogicalExpressions
@@ -630,7 +634,8 @@ def is_filter_valid(filter: ObjectFilter, obj: Any = None) -> bool:
     documentation.
 
     Args:
-        filter (ObjectFilter): The ObjectFilter to check the validity of.
+        filter (ObjectFilter): The ObjectFilter to check the validity of. A
+            plain dict is implicitly converted to an ObjectFilter object.
         obj (Any): The object that will be filtered. All criteria in the Rules
             must be present and whitelisted for its type. Defaults to None.
 
@@ -692,7 +697,8 @@ def sanitize_filter(filter: ObjectFilter) -> ObjectFilter:
     altered deep copy while preserving the original.
 
     Args:
-        filter (ObjectFilter): The ObjectFilter to sanitize.
+        filter (ObjectFilter): The ObjectFilter to sanitize. A plain dict is
+            implicitly converted to an ObjectFilter object.
 
     Raises:
         TypeError: If the ObjectFilter is not a dict.
@@ -716,7 +722,7 @@ def sanitize_filter(filter: ObjectFilter) -> ObjectFilter:
             sanitized[key] = value  # Keep other data types unchanged
     return sanitized
 
-def get_value(obj: Any, rule: dict) -> Any:
+def get_value(obj: Any, rule: dict | Rule) -> Any:
     """Returns the value of an attribute of `obj`, based on
     `rule["criterion"]`.
 
@@ -727,7 +733,8 @@ def get_value(obj: Any, rule: dict) -> Any:
     Args:
         obj (Any): The object that the rule will be executed with. All criteria
             in the rules must be present and whitelisted for its type.
-        rule (dict): The rule to execute.
+        rule (dict | Rule): The rule to execute. A plain dict is implicitly
+            converted to a Rule object.
 
     Raises:
         ValueError: If the criterion is a method without `@filter_criterion`.
@@ -768,14 +775,16 @@ def get_value(obj: Any, rule: dict) -> Any:
 Execution Functions
 """
 
-def execute_logical_expression_on_object(obj: Any, expression: LogicalExpression) -> bool:
+def execute_logical_expression_on_object(obj: Any, expression: dict | LogicalExpression) -> bool:
     """Executes a LogicalExpression on an object.
 
     Args:
         obj (Any): The object that the LogicalExpression will be executed with.
             All criteria in the Rules must be present and whitelisted for its
             type.
-        expression (LogicalExpression): The LogicalExpression to execute.
+        expression (dict | LogicalExpression): The LogicalExpression to
+            execute. A plain dict is implicitly converted to the appropriate
+            _LogicalExpressionBase subclass.
 
     Raises:
         ValueError: If expression is not a LogicalExpression
@@ -833,7 +842,8 @@ def execute_rule_on_object(obj: Any, rule: dict) -> bool:
     Args:
         obj (Any): The object that the rule will be executed with. All criteria
             in the rules must be present and whitelisted for its type.
-        rule (dict): The rule to execute.
+        rule (dict): The rule to execute. A plain dict is implicitly converted
+            to the appropriate _LogicalExpressionBase subclass.
 
     Raises:
         ValueError: If rule["comparison_value"] is not valid.
@@ -879,7 +889,9 @@ def execute_conditional_expression_on_object(obj: Any, expression: dict) -> bool
     Args:
         obj (Any): The object that the conditional expression will be executed with.
             All criteria in the rules must be present and whitelisted for its type.
-        expression (dict): The conditional expression to execute.
+        expression (dict): The conditional expression to execute. A plain dict
+            is implicitly converted to the appropriate _LogicalExpressionBase
+            subclass.
 
     Raises:
         ValueError: If expression does not match the format of a conditional expression.
@@ -902,7 +914,9 @@ def execute_group_expression_on_object(obj: Any, expression: GroupExpression) ->
     Args:
         obj (Any): The object that the GroupExpression will be executed with.
             All criteria in the rules must be present and whitelisted for its type.
-        expression (GroupExpression): The GroupExpression to execute.
+        expression (GroupExpression): The GroupExpression to execute. A plain
+            dict is implicitly converted to the appropriate
+            _LogicalExpressionBase subclass.
 
     Raises:
         ValueError: If expression does not match the format of a GroupExpression.
@@ -928,7 +942,9 @@ def execute_filter_on_object(obj, filter: ObjectFilter, sanitize: bool = True) -
 
     Args:
         obj: Any object.
-        filter (ObjectFilter): An ObjectFilter to execute.
+        filter (ObjectFilter): An ObjectFilter to execute. A plain dict is
+            implicitly converted to the appropriate _LogicalExpressionBase
+            subclass.
         sanitize (bool, optional): Whether or not to santize the ObjectFilters
             before execution. Defaults to True.
 
@@ -955,7 +971,9 @@ def execute_filter_on_array(obj_array: np.ndarray[Any], filter: dict, sanitize: 
 
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
-        filter (ObjectFilter): An ObjectFilter to execute.
+        filter (ObjectFilter): An ObjectFilter to execute. A plain dict is
+            implicitly converted to the appropriate _LogicalExpressionBase
+            subclass.
         sanitize (bool, optional): Whether or not to santize the ObjectFilters
             before execution. Defaults to True.
 
@@ -996,7 +1014,8 @@ def execute_filter_list_on_object(
     Args:
         obj (Any): Any object.
         filter_list (list[ObjectFilter]): A list of ObjectFilter to execute on
-            `obj`.
+            `obj`. Plain dicts in the list are implicitly converted to the
+            appropriate _LogicalExpressionBase subclass.
         sanitize (bool, optional): Whether or not to santize the ObjectFilters
             before execution. Defaults to True.
 
@@ -1021,7 +1040,8 @@ def execute_filter_list_on_array(
     Args:
         obj_array (np.ndarray[Any]): Array of any type of object.
         filter_list (list[dict]): A list of ObjectFilters to execute on the
-            elements of `obj_array`.
+            elements of `obj_array`. Plain dicts in the list are implicitly
+            converted to the appropriate _LogicalExpressionBase subclass.
         sanitize (bool, optional): Whether or not to santize the ObjectFilters
             before execution. Defaults to True.
 
@@ -1052,7 +1072,8 @@ def execute_filter_list_on_object_get_first_success(
     Args:
         obj (Any): Any object.
         filter_list (list[ObjectFilter]): A list of ObjectFilters to execute
-            on `obj`.
+            on `obj`. Plain dicts in the list are implicitly converted to the
+            appropriate _LogicalExpressionBase subclass.
         sanitize (bool, optional): Whether or not to santize the ObjectFilters
             before execution. Defaults to True.
 
@@ -1096,11 +1117,7 @@ class ObjectWrapper:
                 raise AttributeError(f"Not all objects have the attribute '{name}'")
         else:
             if hasattr(self._obj, name):
-                attr = getattr(self._obj, name)
                 # If the attribute is a method, return it directly
-                if callable(attr):
-                    return attr
-                else:
-                    return attr
+                return getattr(self._obj, name)
             else:
                 raise AttributeError(f"'{type(self._obj).__name__}' object has no attribute '{name}'")
