@@ -421,7 +421,9 @@ def dict_to_logical_expression(d: dict) -> LogicalExpression:
     elif expr_type == ObjectFilter:
         return ObjectFilter.from_dict(d)
 
-def get_logical_expression_type(expression: LogicalExpression) -> type:
+def get_logical_expression_type(
+        expression: LogicalExpression
+    ) -> type[bool] | type[Rule] | type[ConditionalExpression] | type[GroupExpression] | type[ObjectFilter]:
     """Determines the type of a LogicalExpression based on its contents.
 
     Args:
