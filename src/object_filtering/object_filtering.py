@@ -77,7 +77,7 @@ class ObjectFilter(_LogicalExpressionBase):
     description: str
     priority: int
     object_types: list
-    logical_expression: bool | dict
+    logical_expression: 'LogicalExpression'
 
     def __init__(
             self,
