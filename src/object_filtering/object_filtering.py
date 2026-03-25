@@ -195,12 +195,12 @@ class GroupExpression(_LogicalExpressionBase):
     _valid_keys = frozenset({"logical_operator", "logical_expressions"})
 
     logical_operator: LogicalOperator
-    logical_expressions: list
+    logical_expressions: 'list[LogicalExpression]'
 
     def __init__(
             self,
             logical_operator: LogicalOperator = "and",
-            logical_expressions: list = []
+            logical_expressions: 'list[LogicalExpression]' = []
         ) -> None:
         super().__init__()
         self["logical_operator"] = logical_operator
