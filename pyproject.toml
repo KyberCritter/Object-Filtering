@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.setuptools]
@@ -28,7 +28,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
 ]
-dynamic = ["dependencies"]
+dependencies = [
+    "numpy>=2.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/KyberCritter/Object-Filtering"
@@ -43,6 +45,3 @@ dev = [
 pythonpath = [
   "."
 ]
-
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
