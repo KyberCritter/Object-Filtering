@@ -88,6 +88,18 @@ class ObjectFilter(_LogicalExpressionBase):
             logical_expression: bool | dict = True
         ) -> None:
         super().__init__()
+        
+        if not isinstance(name, str):
+            raise TypeError("name must be a str.")
+        if not isinstance(description, str):
+            raise TypeError("description must be a str.")
+        if not isinstance(priority, int):
+            raise TypeError("priority must be an int.")
+        if not isinstance(object_types, list) or not all(isinstance(foo, str) for foo in object_types):
+            raise TypeError("object_types must be a list of strings.")
+        if not isinstance(logical_expression, LogicalExpression):
+            raise TypeError("logical_expression must be a LogicalExpression.")
+        
         self["name"] = name
         self["description"] = description
         self["priority"] = priority
@@ -111,14 +123,7 @@ class ObjectFilter(_LogicalExpressionBase):
             ObjectFilter: The constructed ObjectFilter.
         """
         _check_keys(d, cls._valid_keys, cls.__name__)
-        if not isinstance(d["name"], str):
-            raise TypeError("name must be a str.")
-        if not isinstance(d["description"], str):
-            raise TypeError("description must be a str.")
-        if not isinstance(d["priority"], int):
-            raise TypeError("priority must be an int.")
-        if not isinstance(d["object_types"], list):
-            raise TypeError("object_types must be a list.")
+
         return cls(
             name=d["name"],
             description=d["description"],
@@ -145,6 +150,22 @@ class Rule(_LogicalExpressionBase):
             multi_value_behavior: MultiValueBehavior = "none"
         ) -> None:
         super().__init__()
+        
+        if not isinstance(criterion, str):
+            raise TypeError("criterion must be a str.")
+        if operator not in VALID_OPERATORS:
+            raise ValueError(
+                f"operator must be one of {sorted(VALID_OPERATORS)}, "
+                f"got '{operator}'."
+            )
+        if not isinstance(parameters, list):
+            raise TypeError("parameters must be a list.")
+        if multi_value_behavior not in VALID_MULTI_VALUE_BEHAVIORS:
+            raise ValueError(
+                f"multi_value_behavior must be one of {sorted(VALID_MULTI_VALUE_BEHAVIORS)}, "
+                f"got '{multi_value_behavior}'."
+            )
+
         self["criterion"] = criterion
         self["operator"] = operator
         self["comparison_value"] = comparison_value
@@ -168,21 +189,7 @@ class Rule(_LogicalExpressionBase):
             Rule: The constructed Rule.
         """
         _check_keys(d, cls._valid_keys, cls.__name__)
-        if not isinstance(d["criterion"], str):
-            raise TypeError("criterion must be a str.")
-        if d["operator"] not in VALID_OPERATORS:
-            raise ValueError(
-                f"operator must be one of {sorted(VALID_OPERATORS)}, "
-                f"got '{d['operator']}'."
-            )
-        if not isinstance(d["parameters"], list):
-            raise TypeError("parameters must be a list.")
-        if d["multi_value_behavior"] not in VALID_MULTI_VALUE_BEHAVIORS:
-            raise ValueError(
-                f"multi_value_behavior must be one of "
-                f"{sorted(VALID_MULTI_VALUE_BEHAVIORS)}, "
-                f"got '{d['multi_value_behavior']}'."
-            )
+
         return cls(
             criterion=d["criterion"],
             operator=d["operator"],
@@ -195,14 +202,23 @@ class GroupExpression(_LogicalExpressionBase):
     _valid_keys = frozenset({"logical_operator", "logical_expressions"})
 
     logical_operator: LogicalOperator
-    logical_expressions: list
+    logical_expressions: 'list[LogicalExpression]'
 
     def __init__(
             self,
             logical_operator: LogicalOperator = "and",
-            logical_expressions: list = []
+            logical_expressions: 'list[LogicalExpression]' = []
         ) -> None:
         super().__init__()
+
+        if logical_operator not in VALID_LOGICAL_OPERATORS:
+            raise ValueError(
+                f"logical_operator must be one of {sorted(VALID_LOGICAL_OPERATORS)}, "
+                f"got '{logical_operator}'."
+            )
+        if not isinstance(logical_expressions, list) or not all(isinstance(expr, LogicalExpression) for expr in logical_expressions):
+            raise TypeError("logical_expressions must be a list of LogicalExpressions.")
+
         self["logical_operator"] = logical_operator
         self["logical_expressions"] = logical_expressions
 
@@ -223,14 +239,7 @@ class GroupExpression(_LogicalExpressionBase):
             GroupExpression: The constructed GroupExpression.
         """
         _check_keys(d, cls._valid_keys, cls.__name__)
-        if d["logical_operator"] not in VALID_LOGICAL_OPERATORS:
-            raise ValueError(
-                f"logical_operator must be one of "
-                f"{sorted(VALID_LOGICAL_OPERATORS)}, "
-                f"got '{d['logical_operator']}'."
-            )
-        if not isinstance(d["logical_expressions"], list):
-            raise TypeError("logical_expressions must be a list.")
+
         return cls(
             logical_operator=d["logical_operator"],
             logical_expressions=[
@@ -249,11 +258,29 @@ class ConditionalExpression(_LogicalExpressionBase):
 
     def __init__(
             self,
-            _if: bool | dict = True,
-            _then: bool | dict = True,
-            _else: bool | dict = True
+            _if: 'bool | LogicalExpression' = True,
+            _then: 'bool | LogicalExpression' = True,
+            _else: 'bool | LogicalExpression' = True
         ) -> None:
+        """Creates a ConditionalExpression.
+
+        Args:
+            _if (bool | LogicalExpression): The condition branch.
+            _then (bool | LogicalExpression): The branch evaluated when the
+                condition is true.
+            _else (bool | LogicalExpression): The branch evaluated when the
+                condition is false.
+
+        Raises:
+            TypeError: If any branch is not a LogicalExpression.
+        """
         super().__init__()
+        for name, value in (("if", _if), ("then", _then), ("else", _else)):
+            if not isinstance(value, (bool, _LogicalExpressionBase)):
+                raise TypeError(
+                    f"'{name}' must be a bool or LogicalExpression, "
+                    f"got {type(value).__name__}."
+                )
         self["if"] = _if
         self["then"] = _then
         self["else"] = _else
@@ -274,6 +301,7 @@ class ConditionalExpression(_LogicalExpressionBase):
             ConditionalExpression: The constructed ConditionalExpression.
         """
         _check_keys(d, cls._valid_keys, cls.__name__)
+
         return cls(
             _if=logical_expression_from_dict(d["if"]),
             _then=logical_expression_from_dict(d["then"]),
@@ -421,7 +449,9 @@ def dict_to_logical_expression(d: dict) -> LogicalExpression:
     elif expr_type == ObjectFilter:
         return ObjectFilter.from_dict(d)
 
-def get_logical_expression_type(expression: LogicalExpression) -> type:
+def get_logical_expression_type(
+        expression: LogicalExpression
+    ) -> type[bool] | type[Rule] | type[ConditionalExpression] | type[GroupExpression] | type[ObjectFilter]:
     """Determines the type of a LogicalExpression based on its contents.
 
     Args:

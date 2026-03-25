@@ -827,6 +827,122 @@ class TestLogicalExpressionClasses(unittest.TestCase):
         assert cond["then"] is True
         assert cond["else"] is False
 
+    def test_rule_init_invalid_criterion(self):
+        with pytest.raises(TypeError):
+            object_filtering.Rule(criterion=123, operator="==", comparison_value=1, parameters=[], multi_value_behavior="none")
+
+    def test_rule_init_invalid_operator(self):
+        with pytest.raises(ValueError):
+            object_filtering.Rule(criterion="x", operator="~", comparison_value=1, parameters=[], multi_value_behavior="none")
+
+    def test_rule_init_invalid_parameters(self):
+        with pytest.raises(TypeError):
+            object_filtering.Rule(criterion="x", operator="==", comparison_value=1, parameters="not a list", multi_value_behavior="none")
+
+    def test_rule_init_invalid_multi_value_behavior(self):
+        with pytest.raises(ValueError):
+            object_filtering.Rule(criterion="x", operator="==", comparison_value=1, parameters=[], multi_value_behavior="bad")
+
+    def test_group_expression_init_invalid_operator(self):
+        with pytest.raises(ValueError):
+            object_filtering.GroupExpression(logical_operator="xor", logical_expressions=[True])
+
+    def test_group_expression_init_invalid_expressions_type(self):
+        with pytest.raises(TypeError):
+            object_filtering.GroupExpression(logical_operator="and", logical_expressions="not a list")
+
+    def test_group_expression_init_invalid_expression_element(self):
+        with pytest.raises(TypeError):
+            object_filtering.GroupExpression(logical_operator="and", logical_expressions=[42])
+
+    def test_object_filter_init_invalid_name(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name=123, description="desc", priority=0, object_types=["obj"], logical_expression=True)
+
+    def test_object_filter_init_invalid_description(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name="test", description=123, priority=0, object_types=["obj"], logical_expression=True)
+
+    def test_object_filter_init_invalid_priority(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name="test", description="desc", priority="zero", object_types=["obj"], logical_expression=True)
+
+    def test_object_filter_init_invalid_object_types_not_list(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name="test", description="desc", priority=0, object_types="Shape", logical_expression=True)
+
+    def test_object_filter_init_invalid_object_types_elements(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name="test", description="desc", priority=0, object_types=[123], logical_expression=True)
+
+    def test_object_filter_init_invalid_logical_expression(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(name="test", description="desc", priority=0, object_types=["obj"], logical_expression="not valid")
+
+    def test_object_filter_init_invalid_logical_expression_dict(self):
+        with pytest.raises(TypeError):
+            object_filtering.ObjectFilter(
+                name="test",
+                description="desc",
+                priority=0,
+                object_types=["obj"],
+                logical_expression={
+                    "criterion": "x",
+                    "operator": "==",
+                    "comparison_value": 1,
+                    "parameters": [],
+                    "multi_value_behavior": "none"
+                }
+            )
+
+    def test_conditional_expression_init_invalid_if(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(_if="not a bool", _then=True, _else=True)
+
+    def test_conditional_expression_init_invalid_then(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(_if=True, _then=42, _else=True)
+
+    def test_conditional_expression_init_invalid_else(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(_if=True, _then=True, _else=[1, 2])
+
+    def test_conditional_expression_init_invalid_if_dict(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(
+                _if={"criterion": "x", "operator": ">=", "comparison_value": 1,
+                     "parameters": [], "multi_value_behavior": "none"},
+                _then=True,
+                _else=True
+            )
+
+    def test_conditional_expression_init_invalid_then_dict(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(
+                _if=True,
+                _then={"if": True, "then": False, "else": True},
+                _else=True
+            )
+
+    def test_conditional_expression_init_invalid_else_dict(self):
+        with pytest.raises(TypeError):
+            object_filtering.ConditionalExpression(
+                _if=True,
+                _then=True,
+                _else={"logical_operator": "and", "logical_expressions": [True]}
+            )
+
+    def test_conditional_expression_init_valid_logical_expressions(self):
+        rule = object_filtering.Rule("x", ">=", 1, [], "none")
+        group = object_filtering.GroupExpression("and", [True])
+        inner_cond = object_filtering.ConditionalExpression(True, False, True)
+        cond = object_filtering.ConditionalExpression(
+            _if=rule, _then=group, _else=inner_cond
+        )
+        assert isinstance(cond["if"], object_filtering.Rule)
+        assert isinstance(cond["then"], object_filtering.GroupExpression)
+        assert isinstance(cond["else"], object_filtering.ConditionalExpression)
+
     def test_object_filter_from_dict(self):
         d = {
             "name": "Test Filter",
@@ -836,12 +952,24 @@ class TestLogicalExpressionClasses(unittest.TestCase):
             "logical_expression": {
                 "logical_operator": "and",
                 "logical_expressions": [
-                    {"criterion": "x", "operator": ">=", "comparison_value": 2,
-                     "parameters": [], "multi_value_behavior": "none"},
-                    {"if": {"criterion": "y", "operator": ">=",
-                            "comparison_value": 1, "parameters": [],
-                            "multi_value_behavior": "none"},
-                     "then": True, "else": False}
+                    {
+                        "criterion": "x",
+                        "operator": ">=",
+                        "comparison_value": 2,
+                        "parameters": [],
+                        "multi_value_behavior": "none"
+                    },
+                    {
+                        "if": {
+                            "criterion": "y",
+                            "operator": ">=",
+                            "comparison_value": 1,
+                            "parameters": [],
+                            "multi_value_behavior": "none"
+                        },
+                        "then": True,
+                        "else": False
+                    }
                 ]
             }
         }
